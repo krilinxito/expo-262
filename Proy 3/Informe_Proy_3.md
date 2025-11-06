@@ -38,7 +38,7 @@ El experimento se desarrolló implementando un servidor Flask de un solo hilo (c
 ---
 
 ## 2. Planteamiento del problema
-En sistemas de red, el rendimiento de los servidores depende directamente de la relación entre la tasa de llegada de solicitudes (\(\lambda\)) y la tasa de servicio (\(\mu\)). Cuando las llegadas superan la capacidad de atención, el sistema se congestiona y los tiempos de respuesta aumentan exponencialmente. Se busca modelar este comportamiento bajo un entorno controlado que refleje condiciones reales de tráfico web, determinando si el servidor Flask cumple con la estabilidad y eficiencia esperadas para un modelo **M/M/1**.
+En sistemas de red, el rendimiento de los servidores depende directamente de la relación entre la tasa de llegada de solicitudes λ y la tasa de servicio μ. Cuando las llegadas superan la capacidad de atención, el sistema se congestiona y los tiempos de respuesta aumentan exponencialmente. Se busca modelar este comportamiento bajo un entorno controlado que refleje condiciones reales de tráfico web, determinando si el servidor Flask cumple con la estabilidad y eficiencia esperadas para un modelo **M/M/1**.
 
 ---
 
@@ -49,7 +49,7 @@ Modelar y simular el tráfico de solicitudes en un servidor Flask mediante un si
 
 **Objetivos específicos**  
 - Capturar y procesar el tráfico generado entre cliente y servidor Flask con Wireshark.  
-- Estimar los parámetros \(\lambda\) y \(\mu\) empíricos a partir de los archivos CSV obtenidos.  
+- Estimar los parámetros λ y μ empíricos a partir de los archivos CSV obtenidos.  
 - Simular el sistema de colas M/M/1 con los parámetros observados.  
 - Comparar los resultados teóricos, empíricos y simulados, discutiendo las posibles diferencias.  
 
@@ -64,7 +64,7 @@ El análisis de rendimiento en redes de computadoras puede abordarse desde la te
 
 En una red, las unidades básicas de información se denominan **paquetes**, los cuales contienen encabezados y datos de usuario. El tiempo en que cada paquete llega a un nodo depende de múltiples factores: la congestión de la red, el ancho de banda, la latencia del medio físico y el comportamiento del usuario o de las aplicaciones. Dado que estas variables son inherentemente aleatorias, el tráfico de red puede considerarse un **proceso estocástico**.
 
-Según Stallings (2017), el flujo de paquetes puede describirse mediante una **distribución de Poisson**, donde los intervalos de llegada entre paquetes son **exponenciales**. Esto implica que los eventos (paquetes) son independientes y ocurren con una tasa promedio constante \(\lambda\). De forma análoga, los tiempos de servicio del sistema (procesamiento o transmisión) también pueden modelarse como exponenciales, con tasa \(\mu\), siempre que no exista dependencia entre servicios.
+Según Stallings (2017), el flujo de paquetes puede describirse mediante una **distribución de Poisson**, donde los intervalos de llegada entre paquetes son **exponenciales**. Esto implica que los eventos (paquetes) son independientes y ocurren con una tasa promedio constante λ. De forma análoga, los tiempos de servicio del sistema (procesamiento o transmisión) también pueden modelarse como exponenciales, con tasa μ, siempre que no exista dependencia entre servicios.
 
 Wireshark permite observar este fenómeno directamente: al capturar el tráfico en un puerto TCP, se puede comprobar que los **intervalos entre paquetes sucesivos** fluctúan, generando una distribución de frecuencias que se ajusta razonablemente a una exponencial. En el caso del presente proyecto, el puerto 5000 correspondía al servidor Flask, y los paquetes medidos representaban solicitudes HTTP generadas aleatoriamente por el cliente.
 
@@ -72,12 +72,12 @@ Wireshark permite observar este fenómeno directamente: al capturar el tráfico 
 
 ## 4.2. Procesos de nacimiento y muerte
 
-El modelo M/M/1 tiene su origen en los **procesos de nacimiento y muerte (birth–death processes)**, una clase de cadenas de Markov continuas en el tiempo donde el estado \(n\) representa el número de clientes (o paquetes) presentes en el sistema.
+El modelo M/M/1 tiene su origen en los **procesos de nacimiento y muerte (birth–death processes)**, una clase de cadenas de Markov continuas en el tiempo donde el estado **n** representa el número de clientes (o paquetes) presentes en el sistema.
 
-- Un **nacimiento** representa la llegada de un nuevo cliente (con tasa \(\lambda\)).
-- Una **muerte** representa la finalización del servicio de un cliente (con tasa \(\mu\)).
+- Un **nacimiento** representa la llegada de un nuevo cliente (con tasa λ).
+- Una **muerte** representa la finalización del servicio de un cliente (con tasa μ).
 
-El sistema puede encontrarse en los estados \(S = \{0, 1, 2, 3, \dots\}\), donde cada transición ocurre con probabilidad proporcional a las tasas mencionadas. Las ecuaciones de equilibrio estacionario (balance detallado) se derivan igualando los flujos de probabilidad de entrada y salida en cada estado:
+El sistema puede encontrarse en los estados **S = {0, 1, 2, 3, ...}**, donde cada transición ocurre con probabilidad proporcional a las tasas mencionadas. Las ecuaciones de equilibrio estacionario (balance detallado) se derivan igualando los flujos de probabilidad de entrada y salida en cada estado:
 
 $$
 \lambda P_n = \mu P_{n+1}
@@ -133,8 +133,8 @@ El modelo matemático M/M/1 proporciona una base para **predecir el comportamien
 
 La comparación entre teoría, datos empíricos y simulación evidencia la validez de los supuestos de la teoría de colas en redes simples:
 - Los tiempos entre llegadas y servicios se ajustan bien a distribuciones exponenciales.
-- La utilización \(\rho\) observada y simulada son prácticamente iguales (≈ 0.37), confirmando el equilibrio del sistema.
-- El tiempo promedio de espera y el tiempo total en el sistema obtenidos mediante SimPy (\(W_q = 1.20\) s, \(W = 2.39\) s) se aproximan razonablemente a los valores teóricos (\(W_q = 0.73\) s, \(W = 1.95\) s), lo que valida el modelo.
+- La utilización ρ observada y simulada son prácticamente iguales (≈ 0.37), confirmando el equilibrio del sistema.
+- El tiempo promedio de espera y el tiempo total en el sistema obtenidos mediante SimPy (W_q = 1.20 s, W = 2.39 s) se aproximan razonablemente a los valores teóricos (W_q = 0.73 s, W = 1.95 s), lo que valida el modelo.
 
 En términos prácticos, este tipo de análisis es fundamental para el **diseño de arquitecturas de red eficientes**, la **planificación de capacidad de servidores** y la **evaluación de rendimiento** en entornos distribuidos, donde la demanda varía estocásticamente (UOC, 2019; Stallings, 2017).
 
@@ -402,50 +402,50 @@ print(f"W  teórico = {W_teorico:.4f} s")
 
 | Parámetro | Valor | Descripción |
 |------------|--------|--------------|
-| $\rho$ | 0.3734 | Utilización del servidor |
-| $L$ | 0.5960 | Clientes promedio en el sistema |
-| $L_q$ | 0.2226 | Clientes promedio en la cola |
-| $W$ | 1.9499 s | Tiempo medio en el sistema |
-| $W_q$ | 0.7281 s | Tiempo medio en cola |
+| ρ | 0.3734 | Utilización del servidor |
+| L | 0.5960 | Clientes promedio en el sistema |
+| L_q | 0.2226 | Clientes promedio en la cola |
+| W | 1.9499 s | Tiempo medio en el sistema |
+| W_q | 0.7281 s | Tiempo medio en cola |
 
 ### Resultados de simulación (SimPy)
 
 | Parámetro | Valor | Descripción |
 |------------|--------|--------------|
-| $\lambda$ | 0.3057 | Tasa de llegada medida |
-| $\mu$ | 0.8185 | Tasa de servicio medida |
-| $\rho$ | 0.3735 | Utilización simulada |
-| $W_q$ simulado | 1.2029 s | Tiempo medio de espera (simulado) |
-| $W$ simulado | 2.3944 s | Tiempo total en el sistema (simulado) |
-| $W_q$ teórico | 0.7283 s | Tiempo teórico en cola |
-| $W$ teórico | 1.9501 s | Tiempo teórico total |
+| λ | 0.3057 | Tasa de llegada medida |
+| μ | 0.8185 | Tasa de servicio medida |
+| ρ | 0.3735 | Utilización simulada |
+| W_q simulado | 1.2029 s | Tiempo medio de espera (simulado) |
+| W simulado | 2.3944 s | Tiempo total en el sistema (simulado) |
+| W_q teórico | 0.7283 s | Tiempo teórico en cola |
+| W teórico | 1.9501 s | Tiempo teórico total |
 
 ### Interpretación
 El análisis comparativo entre los resultados teóricos, empíricos y simulados permite observar con claridad el comportamiento de un sistema **M/M/1** en un entorno de red real.  
 
-En primer lugar, el valor empírico de \(\lambda = 0.3057\) solicitudes/segundo, obtenido mediante la captura en Wireshark, se encuentra por debajo del valor teórico de \(0.5\). Esta diferencia se debe a la naturaleza asincrónica del tráfico y al retardo acumulado por la ejecución secuencial del servidor Flask, el cual sólo dispone de un hilo de atención (capacidad unitaria). Dicho retardo provoca que las llegadas efectivas sean menos frecuentes, estabilizando al sistema en un régimen de carga moderado.  
+En primer lugar, el valor empírico de λ = 0.3057 solicitudes/segundo, obtenido mediante la captura en Wireshark, se encuentra por debajo del valor teórico de **0.5**. Esta diferencia se debe a la naturaleza asincrónica del tráfico y al retardo acumulado por la ejecución secuencial del servidor Flask, el cual sólo dispone de un hilo de atención (capacidad unitaria). Dicho retardo provoca que las llegadas efectivas sean menos frecuentes, estabilizando al sistema en un régimen de carga moderado.
 
-Por otro lado, el valor de \(\mu = 0.8185\) solicitudes/segundo, medido a partir del tiempo medio de servicio del servidor, implica una **utilización del 37%**. Esto indica que el servidor pasa la mayor parte del tiempo ocioso y que existe margen suficiente para absorber picos de carga sin llegar a congestión.
+Por otro lado, el valor de μ = 0.8185 solicitudes/segundo, medido a partir del tiempo medio de servicio del servidor, implica una **utilización del 37%**. Esto indica que el servidor pasa la mayor parte del tiempo ocioso y que existe margen suficiente para absorber picos de carga sin llegar a congestión.
 
 La comparación entre los valores teóricos y simulados muestra una concordancia notable:
 
 | Parámetro | Teórico | SimPy | Diferencia |
 |------------|----------|--------|-------------|
-| \(W_q\) (s) | 0.7283 | 1.2029 | +65% |
-| \(W\) (s) | 1.9501 | 2.3944 | +22% |
+| W_q (s) | 0.7283 | 1.2029 | +65% |
+| W (s) | 1.9501 | 2.3944 | +22% |
 
 Aunque los tiempos simulados son ligeramente superiores, estas diferencias se explican por la **aleatoriedad inherente a la simulación Monte Carlo** y por el hecho de que los datos empíricos presentan mayor dispersión que el modelo ideal. En un entorno de red real, los tiempos de servicio no son estrictamente exponenciales debido a factores de latencia, planificación del CPU, búferes del sistema operativo y variaciones en la pila TCP/IP.
 
-Desde la perspectiva de redes, este resultado tiene una interpretación clara: el modelo M/M/1 describe con fidelidad el comportamiento promedio de un servidor HTTP bajo tráfico moderado. El sistema mantiene estabilidad mientras \(\rho < 1\); sin embargo, si el ritmo de llegadas aumenta y se aproxima a la capacidad de servicio, la cola crecería exponencialmente, reproduciendo el fenómeno de congestión en routers o servidores sobrecargados.  
+Desde la perspectiva de redes, este resultado tiene una interpretación clara: el modelo M/M/1 describe con fidelidad el comportamiento promedio de un servidor HTTP bajo tráfico moderado. El sistema mantiene estabilidad mientras ρ < 1; sin embargo, si el ritmo de llegadas aumenta y se aproxima a la capacidad de servicio, la cola crecería exponencialmente, reproduciendo el fenómeno de congestión en routers o servidores sobrecargados.
 
-Finalmente, la simulación permitió confirmar que las métricas \(W_q\) y \(W\) son sensibles a pequeñas variaciones de \(\lambda\), mostrando el carácter no lineal de los tiempos de espera frente al aumento de tráfico. Esto respalda la utilidad del modelo M/M/1 como herramienta predictiva en planificación de capacidad y optimización de rendimiento en sistemas distribuidos.
+Finalmente, la simulación permitió confirmar que las métricas W_q y W son sensibles a pequeñas variaciones de λ, mostrando el carácter no lineal de los tiempos de espera frente al aumento de tráfico. Esto respalda la utilidad del modelo M/M/1 como herramienta predictiva en planificación de capacidad y optimización de rendimiento en sistemas distribuidos.
 
 
 ---
 
 ## 7. Conclusiones
 - Los resultados obtenidos demuestran que el comportamiento del servidor Flask puede modelarse adecuadamente mediante un sistema **M/M/1**.  
-- La utilización del servidor ($\rho = 0.37$) indica un nivel de carga moderado, garantizando estabilidad y tiempos de respuesta finitos.  
+- La utilización del servidor (ρ = 0.37) indica un nivel de carga moderado, garantizando estabilidad y tiempos de respuesta finitos.  
 - Las métricas simuladas presentan ligeras diferencias respecto a las teóricas debido a la variabilidad aleatoria inherente a la simulación discreta y al retardo del entorno real.  
 - La integración de **Wireshark**, **Flask** y **SimPy** permitió conectar la teoría de colas con un entorno práctico de redes y computación.  
 
