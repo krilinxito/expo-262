@@ -1,3 +1,6 @@
+<script type="text/javascript"
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+</script>
 <div align="center">
 
 # **Universidad Mayor de San Andrés**  
