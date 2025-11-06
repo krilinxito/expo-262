@@ -32,7 +32,7 @@ Expo/
 
 ### 1️⃣ Clonar el repositorio
 ```bash
-git clone https://github.com/TU_USUARIO/Expo.git
+git clone https://github.com/krilinxito/expo-262.git
 cd expo-262/"Proy 3"/code
 ```
 *(o cambiá `Proy 3` por `Proy 13` o `Proy 25` según el proyecto que quieras ejecutar)*
