@@ -1,0 +1,19 @@
+# Ignorar entornos virtuales
+venv/
+.venv/
+env/
+
+# Cachés y temporales
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+*.tmp
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
