@@ -33,9 +33,9 @@ Expo/
 ### 1️⃣ Clonar el repositorio
 ```bash
 git clone https://github.com/TU_USUARIO/Expo.git
-cd Expo/Proy3/code
+cd expo-262/"Proy 3"/code
 ```
-*(o cambiá `Proy3` por `Proy13` o `Proy25` según el proyecto que quieras ejecutar)*
+*(o cambiá `Proy 3` por `Proy 13` o `Proy 25` según el proyecto que quieras ejecutar)*
 
 ---
 
