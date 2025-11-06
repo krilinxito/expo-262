@@ -13,9 +13,9 @@
 <h1>Proyecto N°3 – Modelado y Simulación de un Sistema de Colas M/M/1 Aplicado al Tráfico en un Servidor Flask</h1>
 
 **Integrantes:**  
-- nombre apellido – carnet
-- nombre apellido – carnet
-- nombre apellido – carnet
+- Flores Tapia Ruddy – carnet
+- Cayllagua Mamani Franklin – carnet
+- Salinas Condori Ian Ezequiel – carnet
 - Maximiliano Gómez Mallo – 14480221  
 <br>
 

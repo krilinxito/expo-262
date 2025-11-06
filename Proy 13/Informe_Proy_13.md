@@ -12,8 +12,9 @@
 <h1>Proyecto N°13 – [Título del Proyecto]</h1>
 
 **Integrantes:**  
-- [nombre apellido] – [carnet]  
-- [nombre apellido] – [carnet]  
+- Flores Tapia Ruddy – carnet
+- Cayllagua Mamani Franklin – carnet
+- Salinas Condori Ian Ezequiel – carnet
 - Maximiliano Gómez Mallo – 14480221  
 <br>
 
