@@ -105,5 +105,4 @@ pip freeze > requirements.txt
 
 ---
 
-**Autor:** Maximiliano Gómez Mallo  
-**Repositorio base:** [GitHub - TU_USUARIO/Expo](https://github.com/TU_USUARIO/Expo)
+
