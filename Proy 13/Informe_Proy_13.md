@@ -74,7 +74,7 @@ Modelar, simular y analizar el comportamiento de un sistema M/M/c enfocado en se
 
 ---
 
-# 4. Marco teórico (versión APA y compatible con PDF)
+# 4. Marco teórico 
 
 ## 4.1 Proceso de Poisson
 
