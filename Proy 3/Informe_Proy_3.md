@@ -1,5 +1,5 @@
 <script type="text/javascript"
-  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" >
 </script>
 <div align="center">
 
@@ -15,7 +15,7 @@
 **Integrantes:**  
 - Flores Tapia Ruddy – carnet
 - Cayllagua Mamani Franklin – carnet
-- Salinas Condori Ian Ezequiel – carnet
+- Salinas Condori Ian Ezequiel – 13694034
 - Maximiliano Gómez Mallo – 14480221  
 <br>
 
@@ -31,118 +31,171 @@
 ---
 
 ## 1. Introducción
-El presente proyecto tiene como finalidad analizar y modelar el comportamiento de un servidor web mediante la teoría de colas, específicamente utilizando el modelo **M/M/1**. Este enfoque permite representar la llegada aleatoria de solicitudes y su atención secuencial por un único servidor, con el objetivo de evaluar métricas de rendimiento tales como el tiempo medio de espera, la utilización del servidor y el número promedio de clientes en el sistema.
+El presente proyecto tiene como finalidad analizar y modelar el comportamiento del tráfico de solicitudes en un servidor web mediante la teoría de colas, utilizando específicamente el modelo **M/M/1**. Este modelo permite representar la llegada aleatoria de solicitudes y su atención secuencial por un único servidor, lo que posibilita evaluar métricas de rendimiento como el tiempo medio de espera, la utilización del servidor y el número promedio de clientes en el sistema.
 
-El experimento se desarrolló implementando un servidor Flask de un solo hilo (capacidad de servicio unitario), un cliente generador de tráfico con llegadas de tipo Poisson y la herramienta **Wireshark** para capturar el tráfico real. Posteriormente, se realizó una **simulación en SimPy** con los parámetros empíricamente medidos, comparando los resultados con las expresiones teóricas de la teoría de colas.
+Para ello, se implementó un servidor Flask de un solo hilo, acompañado de un cliente generador de tráfico cuyas llegadas se modelan como un proceso de Poisson. El tráfico real entre cliente y servidor se registró mediante la herramienta **Wireshark**, a partir de la cual se obtuvieron datos empíricos sobre las tasas de llegada y servicio. Con estos parámetros se construyó una **simulación del sistema en SimPy**, cuyos resultados se comparan con las expresiones teóricas de la teoría de colas para el modelo **M/M/1**.
 
+De esta manera, el proyecto integra conceptos de procesos estocásticos, teoría de colas y simulación con un escenario práctico de tráfico en un servidor Flask, permitiendo estudiar cómo la carga de trabajo impacta en su desempeño.
 ---
 
 ## 2. Planteamiento del problema
-En sistemas de red, el rendimiento de los servidores depende directamente de la relación entre la tasa de llegada de solicitudes λ y la tasa de servicio μ. Cuando las llegadas superan la capacidad de atención, el sistema se congestiona y los tiempos de respuesta aumentan exponencialmente. Se busca modelar este comportamiento bajo un entorno controlado que refleje condiciones reales de tráfico web, determinando si el servidor Flask cumple con la estabilidad y eficiencia esperadas para un modelo **M/M/1**.
+En los sistemas de red, el rendimiento de un servidor está determinado principalmente por la relación entre la tasa de llegada de solicitudes (λ) y la tasa de servicio (μ). Cuando la demanda de atención se aproxima o supera la capacidad del servidor, el sistema comienza a congestionarse, aumentando los tiempos de espera y afectando negativamente la calidad del servicio percibida por los usuarios.
+
+En el caso particular de un servidor web implementado con Flask, surge la necesidad de conocer si, bajo determinadas condiciones de tráfico, su comportamiento puede describirse adecuadamente mediante un modelo de colas M/M/1, es decir, con llegadas de tipo Poisson, tiempos de servicio exponenciales y un único servidor. No disponer de este análisis dificulta la predicción del rendimiento, la identificación de posibles cuellos de botella y la toma de decisiones sobre escalabilidad o mejora de la infraestructura.
+
+Por ello, el problema que se aborda en este proyecto es modelar y simular el tráfico de solicitudes hacia un servidor Flask en un entorno controlado, utilizando datos capturados con Wireshark, con el fin de determinar si el sistema se mantiene estable (ρ = λ/μ < 1) y si las métricas observadas se aproximan a las predichas por la teoría de colas para un sistema **M/M/1**.
 
 ---
 
 ## 3. Objetivos
 
-**Objetivo general**  
-Modelar y simular el tráfico de solicitudes en un servidor Flask mediante un sistema de colas **M/M/1**, analizando las tasas de llegada y servicio a partir de datos capturados con Wireshark y su validación mediante SimPy.
+**Objetivo general**
 
-**Objetivos específicos**  
-- Capturar y procesar el tráfico generado entre cliente y servidor Flask con Wireshark.  
-- Estimar los parámetros λ y μ empíricos a partir de los archivos CSV obtenidos.  
-- Simular el sistema de colas M/M/1 con los parámetros observados.  
-- Comparar los resultados teóricos, empíricos y simulados, discutiendo las posibles diferencias.  
+Modelar y simular el tráfico de solicitudes en un servidor Flask mediante un sistema de colas **M/M/1**, a partir de datos obtenidos con Wireshark, con el propósito de analizar su comportamiento y validar los resultados mediante una **simulación en SimPy**.
+
+**Objetivos específicos**
+
+- Capturar y procesar el tráfico generado entre el cliente y el servidor Flask utilizando Wireshark, exportando la información relevante a archivos CSV.
+- Estimar empíricamente los parámetros λ (tasa de llegada) y μ (tasa de servicio) a partir de los datos capturados.
+- Implementar en **SimPy una simulación del sistema de colas M/M/1** empleando los parámetros observados.
+
+Comparar las métricas de rendimiento obtenidas de forma teórica, empírica y simulada, identificando y analizando las posibles diferencias.
 
 ---
 
 ## 4. Marco teórico
-El análisis de rendimiento en redes de computadoras puede abordarse desde la teoría de colas, una rama de la probabilidad que modela sistemas donde las entidades (en este caso, **paquetes o solicitudes**) llegan de forma aleatoria para ser atendidas por uno o varios servidores. En el contexto de las redes, estos servidores pueden representar **routers, interfaces de red, servidores web o servicios de aplicación**. Cada solicitud que ingresa al sistema consume recursos computacionales o de transmisión, y si estos se encuentran ocupados, la solicitud debe **esperar en cola** hasta ser atendida.
+
+### 4.1. Teoría de colas
+
+La **teoría de colas** es una rama de la probabilidad y de los procesos estocásticos que estudia sistemas en los cuales ciertas entidades (clientes, paquetes, solicitudes, tareas, etc.) llegan de manera aleatoria para ser atendidas por uno o varios servidores. Estos sistemas aparecen de forma natural en áreas como telecomunicaciones, computación, transporte, logística y servicios.
+
+Un sistema de colas típico está determinado por:
+
+- La **tasa de llegada** de clientes al sistema, denotada por λ.
+- La **tasa de servicio**, denotada por μ, que indica la velocidad a la que el servidor atiende a los clientes.
+- La **disciplina de servicio**, por ejemplo FIFO (*First In, First Out*).
+- El número de **servidores** y la capacidad de la cola (finita o infinita).
+
+A partir de estos parámetros se pueden obtener métricas como:
+
+- **L**: número promedio de clientes en el sistema (cola + servicio).
+- **Lq**: número promedio de clientes en la cola.
+- **W**: tiempo promedio que un cliente pasa en el sistema.
+- **Wq**: tiempo promedio que un cliente espera en la cola.
+
+Estas cantidades permiten evaluar el rendimiento del sistema y tomar decisiones sobre dimensionamiento de recursos y calidad de servicio.
 
 ---
 
-## 4.1. Tráfico en redes y naturaleza estocástica
+### 4.2. Modelo de colas M/M/1
 
-En una red, las unidades básicas de información se denominan **paquetes**, los cuales contienen encabezados y datos de usuario. El tiempo en que cada paquete llega a un nodo depende de múltiples factores: la congestión de la red, el ancho de banda, la latencia del medio físico y el comportamiento del usuario o de las aplicaciones. Dado que estas variables son inherentemente aleatorias, el tráfico de red puede considerarse un **proceso estocástico**.
+El modelo **M/M/1** es uno de los modelos más sencillos y estudiados en teoría de colas, y sirve como punto de partida para analizar sistemas de servicio básicos. La notación **M/M/1** se interpreta de la siguiente forma:
 
-Según Stallings (2017), el flujo de paquetes puede describirse mediante una **distribución de Poisson**, donde los intervalos de llegada entre paquetes son **exponenciales**. Esto implica que los eventos (paquetes) son independientes y ocurren con una tasa promedio constante λ. De forma análoga, los tiempos de servicio del sistema (procesamiento o transmisión) también pueden modelarse como exponenciales, con tasa μ, siempre que no exista dependencia entre servicios.
+- Primera **M** (*Markovian*): los **tiempos entre llegadas** son aleatorios y siguen una distribución exponencial, lo que equivale a decir que las llegadas se modelan mediante un **proceso de Poisson** con tasa λ.
+- Segunda **M**: los **tiempos de servicio** también son exponenciales con parámetro μ.
+- El número **1**: indica que existe **un solo servidor**.
 
-Wireshark permite observar este fenómeno directamente: al capturar el tráfico en un puerto TCP, se puede comprobar que los **intervalos entre paquetes sucesivos** fluctúan, generando una distribución de frecuencias que se ajusta razonablemente a una exponencial. En el caso del presente proyecto, el puerto 5000 correspondía al servidor Flask, y los paquetes medidos representaban solicitudes HTTP generadas aleatoriamente por el cliente.
+Se asume, además, una cola de capacidad infinita y una disciplina de servicio **FIFO**.  
+Cuando el sistema es estable:
+$$ \rho = \frac{\lambda}{\mu} < 1 $$
 
----
+es posible obtener expresiones analíticas para las métricas principales:
 
-## 4.2. Procesos de nacimiento y muerte
+- **Número promedio de clientes en el sistema:**
 
-El modelo M/M/1 tiene su origen en los **procesos de nacimiento y muerte (birth–death processes)**, una clase de cadenas de Markov continuas en el tiempo donde el estado **n** representa el número de clientes (o paquetes) presentes en el sistema.
-
-- Un **nacimiento** representa la llegada de un nuevo cliente (con tasa λ).
-- Una **muerte** representa la finalización del servicio de un cliente (con tasa μ).
-
-El sistema puede encontrarse en los estados **S = {0, 1, 2, 3, ...}**, donde cada transición ocurre con probabilidad proporcional a las tasas mencionadas. Las ecuaciones de equilibrio estacionario (balance detallado) se derivan igualando los flujos de probabilidad de entrada y salida en cada estado:
-
-$$
-\lambda P_n = \mu P_{n+1}
-$$
-
-Resolviendo recursivamente:
-$$
-P_n = \left( \frac{\lambda}{\mu} \right)^n P_0 = \rho^n P_0,
-$$
-donde \(\rho = \frac{\lambda}{\mu}\) es la **intensidad de tráfico o utilización del servidor**.
-
-Como la suma de probabilidades debe ser 1:
-$$
-\sum_{n=0}^{\infty} P_n = 1 \Rightarrow P_0 = 1 - \rho \text{  (válido si } \rho < 1)
-$$
-
-De ahí se obtienen los valores esperados de las métricas principales (Gross et al., 2018):
-
-- Número promedio de clientes en el sistema:
 $$L = \frac{\rho}{1 - \rho}$$
 
-- Número promedio en cola:
-$$L_q = \frac{\rho^2}{1 - \rho}$$
 
-- Tiempo promedio en el sistema:
-$$W = \frac{1}{\mu - \lambda}$$
+- **Número promedio de clientes en cola:**
 
-- Tiempo promedio en cola:
-$$W_q = \frac{\lambda}{\mu(\mu - \lambda)}$$
+$$
+L_q = \frac{\rho^2}{1 - \rho}
+$$
 
-Estas relaciones establecen un vínculo directo entre los procesos estocásticos y el rendimiento del sistema. El sistema se considera **estable** si \(\lambda < \mu\), es decir, si la capacidad de atención es mayor que la tasa de llegada.
+- **Tiempo promedio en el sistema:**
+$$
+W = \frac{1}{\mu - \lambda}
+$$
 
----
+- **Tiempo promedio en cola:**
 
-## 4.3. Interpretación en el contexto de redes
+$$
+W_q = \frac{\lambda}{\mu(\mu - \lambda)}
+$$
 
-En un entorno real, el servidor Flask se comporta como una estación de servicio con **capacidad unitaria**. Cada solicitud HTTP que llega se encola si el hilo de atención está ocupado. La llegada de solicitudes sigue un proceso de Poisson (generado por el cliente con interarrivals exponenciales), mientras que los tiempos de servicio, determinados por el retardo de ejecución y el uso de CPU, se aproximan a una distribución exponencial.
+Estas relaciones permiten predecir el comportamiento del sistema en función de la carga (λ) y la capacidad de servicio (μ), y sirven como base para comparar resultados teóricos con datos empíricos y simulados.
 
-A nivel de red, esta dinámica puede interpretarse como una **cola de transmisión**:
-- Cada solicitud HTTP se encapsula en varios **paquetes TCP**, los cuales viajan por la pila de protocolos hasta el servidor.
-- Al llegar al servidor, los paquetes se reconstruyen, y Flask procesa la solicitud.
-- Si Flask (un solo hilo) está ocupado, las solicitudes se acumulan temporalmente en el buffer del sistema operativo o en la cola interna del servidor.
-
-Por tanto, el modelo M/M/1 representa de forma abstracta el ciclo: **recepción de paquetes → reconstrucción → procesamiento → respuesta**.
-
-Wireshark permite visualizar estos flujos: el filtro `tcp.port == 5000` muestra tanto las llegadas (paquetes con bandera PSH/ACK desde el cliente) como las respuestas (desde el servidor). El análisis de los tiempos entre solicitudes capturados con `frame.time_epoch` demuestra la variabilidad aleatoria característica de los procesos de Poisson (ULPGC, 2020).
 
 ---
 
-## 4.4. Conexión entre teoría y simulación
+### 4.3. Proceso de Poisson y tiempos exponenciales
 
-El modelo matemático M/M/1 proporciona una base para **predecir el comportamiento medio del sistema**, pero la simulación en herramientas como **SimPy** permite **reproducir la dinámica temporal completa**, incluyendo la variabilidad estocástica.  
+El **proceso de Poisson** es un proceso estocástico ampliamente utilizado para modelar **llegadas aleatorias** en el tiempo, como llamadas telefónicas, llegadas de clientes a un servicio o solicitudes a un servidor web. Se caracteriza por:
 
-La comparación entre teoría, datos empíricos y simulación evidencia la validez de los supuestos de la teoría de colas en redes simples:
-- Los tiempos entre llegadas y servicios se ajustan bien a distribuciones exponenciales.
-- La utilización ρ observada y simulada son prácticamente iguales (≈ 0.37), confirmando el equilibrio del sistema.
-- El tiempo promedio de espera y el tiempo total en el sistema obtenidos mediante SimPy (W_q = 1.20 s, W = 2.39 s) se aproximan razonablemente a los valores teóricos (W_q = 0.73 s, W = 1.95 s), lo que valida el modelo.
+- Una tasa constante de llegadas **λ**, medida en llegadas por unidad de tiempo.
+- Independencia entre los incrementos: el número de llegadas en intervalos disjuntos es independiente.
+- El número de llegadas en un intervalo de longitud *t* sigue una distribución de Poisson de parámetro λt.
 
-En términos prácticos, este tipo de análisis es fundamental para el **diseño de arquitecturas de red eficientes**, la **planificación de capacidad de servidores** y la **evaluación de rendimiento** en entornos distribuidos, donde la demanda varía estocásticamente (UOC, 2019; Stallings, 2017).
+Un resultado fundamental es que los **tiempos entre llegadas consecutivas** en un proceso de Poisson son variables aleatorias con **distribución exponencial** de parámetro λ. Es decir, si *T* representa el tiempo entre dos llegadas:
+
+\[
+T \sim \text{Exponencial}(\lambda)
+\]
+
+Del mismo modo, en muchos modelos de colas se asume que los **tiempos de servicio** también son exponenciales, con parámetro μ. Esta propiedad de “falta de memoria” de la distribución exponencial simplifica el análisis matemático y es coherente con ciertos tipos de procesos de servicio.
+
+En el contexto de tráfico web, las llegadas de solicitudes al servidor pueden aproximarse mediante un proceso de Poisson bajo ciertas condiciones (por ejemplo, cuando hay muchos usuarios independientes generando solicitudes).
 
 ---
 
-## 4.5. Conclusión del marco teórico
+### 4.4. Simulación de eventos discretos y SimPy
 
-El modelo **M/M/1**, derivado de los procesos de nacimiento y muerte, constituye el caso base para el estudio del rendimiento en redes de computadoras. Su simplicidad permite comprender los fenómenos de congestión y espera que ocurren en servidores web y dispositivos de red. Al integrar las herramientas modernas de captura (Wireshark) y simulación (SimPy), es posible **verificar experimentalmente** los principios de la teoría de colas y su relación con el tráfico de red real.
+La **simulación de eventos discretos** es una técnica que permite estudiar el comportamiento de sistemas dinámicos en los que el estado cambia en instantes específicos de tiempo, llamados **eventos** (llegadas, salidas del sistema, cambios de estado, etc.). En lugar de resolver analíticamente el modelo, se construye un **modelo computacional** que reproduce la lógica del sistema y se ejecuta múltiples veces para estimar métricas de interés.
+
+En el caso de sistemas de colas, la simulación de eventos discretos permite:
+
+- Modelar llegadas, tiempos de servicio y colas con alto nivel de detalle.
+- Probar distintos escenarios de carga (distintos valores de λ y μ).
+- Analizar el impacto de cambios en la configuración del sistema sin modificar la infraestructura real.
+
+**SimPy** es una librería de Python diseñada específicamente para la simulación de eventos discretos. Permite definir:
+
+- **Procesos** (por ejemplo, la generación de llegadas).
+- **Recursos** (por ejemplo, un servidor que atiende solicitudes).
+- **Eventos** (comienzo y finalización del servicio, llegada de nuevos clientes, etc.).
+
+En un sistema de tipo M/M/1, SimPy puede utilizarse para simular las llegadas de solicitudes al servidor Flask, los tiempos de servicio y la dinámica de la cola, obteniendo así métricas simuladas que luego pueden compararse con las fórmulas teóricas y con los datos medidos.
+
+---
+
+### 4.5. Rendimiento en servidores web como sistemas de colas
+
+Un **servidor web** puede interpretarse naturalmente como un **sistema de colas**, donde las solicitudes HTTP que llegan representan clientes que requieren servicio. Cada solicitud consume recursos de CPU, memoria y red, y si el servidor está ocupado atendiendo otras solicitudes, estas deben esperar en cola.
+
+Algunas métricas típicas de rendimiento en servidores web son:
+
+- **Tiempo de respuesta**: tiempo total que transcurre desde que el cliente envía una solicitud hasta que recibe la respuesta completa.
+- **Tasa de llegada de solicitudes**: número de solicitudes por unidad de tiempo (λ).
+- **Throughput o tasa de salida**: número de solicitudes atendidas por unidad de tiempo.
+- **Utilización del servidor**: fracción del tiempo que el servidor está ocupado.
+
+Modelar un servidor web como un sistema **M/M/1** permite relacionar estas métricas con los parámetros λ y μ, y analizar cómo se comporta el servidor cuando la carga aumenta. En particular, conforme ρ se acerca a 1, los tiempos de espera crecen rápidamente, reflejando un estado cercano a la congestión.
+
+En este proyecto, el servidor desarrollado con **Flask** se considera como el servidor del sistema de colas, y el tráfico generado por el cliente se analiza desde el punto de vista de estas métricas.
+
+---
+
+### 4.6. Herramientas de apoyo: Flask y Wireshark
+
+**Flask** es un *microframework* de Python para el desarrollo de aplicaciones web. Se caracteriza por su sencillez y ligereza, lo que lo hace adecuado para construir rápidamente servidores HTTP simples. En este proyecto, Flask se utiliza para implementar un **servidor web de un solo hilo**, que atiende las solicitudes generadas por el cliente y actúa como el servidor del sistema de colas M/M/1.
+
+**Wireshark** es una herramienta de software para la **captura y análisis de tráfico de red**. Permite inspeccionar paquetes que circulan por una interfaz de red, filtrarlos y exportar información relevante a distintos formatos, como archivos CSV. En el contexto de este proyecto, Wireshark se emplea para:
+
+- Capturar el tráfico entre el cliente generador y el servidor Flask.
+- Extraer tiempos de llegada y respuesta de las solicitudes.
+- Estimar a partir de estos datos los parámetros **λ** y **μ**, que luego se utilizan en el análisis teórico y en la simulación con SimPy.
+
+El uso combinado de estas herramientas permite conectar la **teoría de colas** con un escenario práctico de tráfico web, pasando por la **captura de datos reales** y su **modelado mediante simulación**.
 
 
 ## 5. Diseño metodológico
