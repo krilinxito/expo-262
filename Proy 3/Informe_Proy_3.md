@@ -500,7 +500,7 @@ Finalmente, la simulación permitió confirmar que las métricas W_q y W son sen
 - Los resultados obtenidos demuestran que el comportamiento del servidor Flask puede modelarse adecuadamente mediante un sistema **M/M/1**.  
 - La utilización del servidor (ρ = 0.37) indica un nivel de carga moderado, garantizando estabilidad y tiempos de respuesta finitos.  
 - Las métricas simuladas presentan ligeras diferencias respecto a las teóricas debido a la variabilidad aleatoria inherente a la simulación discreta y al retardo del entorno real.  
-- La integración de **Wireshark**, **Flask** y **SimPy** permitió conectar la teoría de colas con un entorno práctico de redes y computación.  
+- La integración de **Wireshark**, **Flask** y **SimPy** permitió conectar la teoría de colas con un entorno práctico de redes.  
 
 ---
 
