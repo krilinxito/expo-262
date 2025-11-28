@@ -103,7 +103,9 @@ es posible obtener expresiones analíticas para las métricas principales:
 
 - **Número promedio de clientes en el sistema:**
 
-$$L = \frac{\rho}{1 - \rho}$$
+$$
+L = \frac{\rho}{1 - \rho}
+$$
 
 
 - **Número promedio de clientes en cola:**
