@@ -1,15 +1,18 @@
 # app.py
 import os
 import sys
+import json
 import subprocess
+from datetime import datetime
+
 import numpy as np
 import pandas as pd
 
 import matplotlib
-matplotlib.use("Agg")  # Backend sin interfaz gráfica (evita errores con tkinter)
+matplotlib.use("Agg")  # backend sin ventana
 import matplotlib.pyplot as plt
 
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request, Response
 
 # --------------------------
 # Configuración básica
@@ -17,23 +20,22 @@ from flask import Flask, render_template, jsonify
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 FILE_DIR = os.path.join(BASE_DIR, "file")
 PLOTS_DIR = os.path.join(BASE_DIR, "static", "plots")
+EXPERIMENTS_FILE = os.path.join(FILE_DIR, "experiments.json")
+WIRESHARK_CSV = os.path.join(FILE_DIR, "wireshark.csv")
 
 os.makedirs(FILE_DIR, exist_ok=True)
 os.makedirs(PLOTS_DIR, exist_ok=True)
 
 app = Flask(__name__)
 
-# Procesos globales para server y cliente
 server_process = None
 client_process = None
-sim_process = None  # opcional si quieres lanzar sim.py desde aquí
 
 
-def cargar_datos():
-    """
-    Intenta leer los CSV generados por server.py y client.py.
-    Devuelve (df_server, df_client, data_available).
-    """
+# --------------------------
+# Utilidades de datos
+# --------------------------
+def cargar_datos_server_client():
     server_csv = os.path.join(FILE_DIR, "tiempos_servicio.csv")
     client_csv = os.path.join(FILE_DIR, "datos_cliente.csv")
 
@@ -42,16 +44,11 @@ def cargar_datos():
 
     df_server = pd.read_csv(server_csv)
     df_client = pd.read_csv(client_csv)
-
     return df_server, df_client, True
 
 
-def calcular_metricas(df_server, df_client):
-    """
-    Calcula λ, μ, ρ, Wq, W, etc. desde los datos empíricos.
-    Devuelve un diccionario con todo.
-    """
-    # Ordenar por llegada
+def calcular_metricas_basicas(df_server, df_client):
+    # ordenar llegadas por si acaso
     df_server_sorted = df_server.sort_values("timestamp_llegada").reset_index(drop=True)
     llegadas = df_server_sorted["timestamp_llegada"].values
     interarrivals_server = np.diff(llegadas)
@@ -70,11 +67,9 @@ def calcular_metricas(df_server, df_client):
     Wq_emp = df_server["tiempo_espera_cola"].mean()
     W_emp = df_server["tiempo_en_sistema"].mean()
 
-    # Cliente: tiempo de respuesta promedio (ignorando errores)
     df_client_ok = df_client[df_client["t_respuesta"].notna()].copy()
     W_client_emp = df_client_ok["t_respuesta"].mean() if not df_client_ok.empty else np.nan
 
-    # Teoría M/M/1
     if rho_hat < 1:
         Wq_teo = rho_hat / (mu_hat - lambda_hat_server)
         W_teo = 1.0 / (mu_hat - lambda_hat_server)
@@ -83,176 +78,322 @@ def calcular_metricas(df_server, df_client):
     else:
         Wq_teo = W_teo = Lq_teo = L_teo = np.nan
 
-    # L y Lq empíricos
     L_emp = lambda_hat_server * W_emp
     Lq_emp = lambda_hat_server * Wq_emp
 
     metricas = {
-        "lambda_hat_server": lambda_hat_server,
-        "lambda_hat_client": lambda_hat_client,
-        "mu_hat": mu_hat,
-        "rho_hat": rho_hat,
-        "Wq_emp": Wq_emp,
-        "W_emp": W_emp,
-        "W_client_emp": W_client_emp,
-        "L_emp": L_emp,
-        "Lq_emp": Lq_emp,
-        "Wq_teo": Wq_teo,
-        "W_teo": W_teo,
-        "Lq_teo": Lq_teo,
-        "L_teo": L_teo,
+        "lambda_hat_server": float(lambda_hat_server),
+        "lambda_hat_client": float(lambda_hat_client),
+        "mu_hat": float(mu_hat),
+        "rho_hat": float(rho_hat),
+        "Wq_emp": float(Wq_emp),
+        "W_emp": float(W_emp),
+        "W_client_emp": float(W_client_emp) if not np.isnan(W_client_emp) else None,
+        "L_emp": float(L_emp),
+        "Lq_emp": float(Lq_emp),
+        "Wq_teo": float(Wq_teo),
+        "W_teo": float(W_teo),
+        "Lq_teo": float(Lq_teo),
+        "L_teo": float(L_teo),
+        "interarrivals_server": interarrivals_server,
     }
-
     return metricas
 
 
-def correr_simulacion_mm1():
-    """
-    (Opcional) Ejecuta sim.py como proceso aparte.
-    Aquí solo lo arrancamos; si quieres leer un CSV de resultados,
-    puedes extenderlo.
-    """
-    global sim_process
-    if sim_process is None or sim_process.poll() is not None:
-        sim_process = subprocess.Popen(
-            [sys.executable, "sim.py"],  # usa el mismo Python de este entorno
-            cwd=BASE_DIR,
-        )
-        return True, "Simulación (sim.py) iniciada."
+# --------------------------
+# Simulación M/M/1
+# --------------------------
+def simular_mm1(lambda_, mu_, n_clientes=1000, seed=42):
+    rng = np.random.default_rng(seed)
+
+    t = 0.0
+    next_arrival = rng.exponential(1.0 / lambda_)
+    next_departure = np.inf
+    queue = 0
+    server_busy = False
+
+    arrival_times = []
+    service_start_times = []
+    departure_times = []
+
+    while len(departure_times) < n_clientes:
+        if next_arrival <= next_departure:
+            t = next_arrival
+            arrival_times.append(t)
+            queue += 1
+            next_arrival = t + rng.exponential(1.0 / lambda_)
+
+            if not server_busy:
+                server_busy = True
+                service_start_times.append(t)
+                st = rng.exponential(1.0 / mu_)
+                next_departure = t + st
+        else:
+            t = next_departure
+            queue -= 1
+            departure_times.append(t)
+            if queue > 0:
+                service_start_times.append(t)
+                st = rng.exponential(1.0 / mu_)
+                next_departure = t + st
+            else:
+                server_busy = False
+                next_departure = np.inf
+
+    arrival_arr = np.array(arrival_times[:n_clientes])
+    depart_arr = np.array(departure_times[:n_clientes])
+    start_arr = np.array(service_start_times[:n_clientes])
+
+    W = depart_arr - arrival_arr
+    Wq = start_arr - arrival_arr
+
+    W_sim = float(W.mean())
+    Wq_sim = float(Wq.mean())
+    L_sim = float(lambda_ * W_sim)
+    Lq_sim = float(lambda_ * Wq_sim)
+
+    return {
+        "W_sim": W_sim,
+        "Wq_sim": Wq_sim,
+        "L_sim": L_sim,
+        "Lq_sim": Lq_sim,
+    }
+
+
+# --------------------------
+# Análisis Wireshark
+# --------------------------
+def analizar_wireshark():
+    if not os.path.exists(WIRESHARK_CSV):
+        return None
+
+    try:
+        dfw = pd.read_csv(WIRESHARK_CSV)
+    except Exception:
+        return None
+
+    columnas = dfw.columns.str.lower()
+    col_time = None
+    col_info = None
+
+    for c in dfw.columns:
+        cl = c.lower()
+        if col_time is None and "time" in cl:
+            col_time = c
+        if "info" in cl:
+            col_info = c
+
+    if col_time is None:
+        return None
+
+    dfw = dfw.sort_values(col_time).reset_index(drop=True)
+
+    if col_info is not None:
+        mask_req = dfw[col_info].astype(str).str.contains("POST", case=False, na=False)
+        df_req = dfw[mask_req].copy()
     else:
-        return False, "La simulación ya está corriendo."
+        df_req = dfw.copy()
+
+    if len(df_req) < 2:
+        return None
+
+    times = df_req[col_time].astype(float).values
+    interarrivals = np.diff(times)
+    interarrivals = interarrivals[interarrivals > 0]
+
+    if len(interarrivals) == 0:
+        return None
+
+    lambda_w = 1.0 / interarrivals.mean()
+
+    stats = {
+        "lambda_wireshark": float(lambda_w),
+        "interarrivals_w": interarrivals,
+        "n_packets": int(len(df_req)),
+    }
+    return stats
 
 
-def generar_graficas(df_server, df_client, metricas):
-    """
-    Genera y guarda gráficas como PNG dentro de static/plots.
-    Devuelve una lista de nombres de archivo para la plantilla.
-    """
+# --------------------------
+# Historial de experimentos
+# --------------------------
+def load_experiments():
+    if not os.path.exists(EXPERIMENTS_FILE):
+        return []
+    try:
+        with open(EXPERIMENTS_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if isinstance(data, list):
+            return data
+        return []
+    except Exception:
+        return []
+
+
+def save_experiments(exps):
+    with open(EXPERIMENTS_FILE, "w", encoding="utf-8") as f:
+        json.dump(exps, f, ensure_ascii=False, indent=2)
+
+
+# --------------------------
+# Generación de gráficas PNG
+# --------------------------
+def generar_plots(df_server, df_client, metricas, wireshark_stats):
     plot_files = []
 
-    # ====== 1) Histograma de tiempos de servicio ======
+    # 1) Hist tiempos de servicio
     servicios = df_server["tiempo_servicio"].values
     mu_hat = metricas["mu_hat"]
-
-    plt.figure(figsize=(7, 4))
-    plt.hist(servicios, bins=20, density=True, alpha=0.6, label="Datos empíricos")
-    x_vals = np.linspace(0, servicios.max(), 200)
+    x_vals = np.linspace(0, max(servicios.max(), 1.0), 200)
     pdf_exp = mu_hat * np.exp(-mu_hat * x_vals)
-    plt.plot(x_vals, pdf_exp, label="Exp(μ̂) teórica")
-    plt.xlabel("Tiempo de servicio (s)")
-    plt.ylabel("Densidad")
+
+    plt.figure()
+    plt.hist(servicios, bins=20, density=True, alpha=0.7, label="Empírico")
+    plt.plot(x_vals, pdf_exp, "r-", label="Exp(μ̂)")
     plt.title("Tiempos de servicio vs exponencial")
-    plt.legend()
-    filename1 = "hist_tiempo_servicio.png"
-    plt.savefig(os.path.join(PLOTS_DIR, filename1), bbox_inches="tight")
-    plt.close()
-    plot_files.append(filename1)
-
-    # ====== 2) Histograma de interarrivals (cliente) ======
-    interarrivals_client = df_client["interarrival"].values
-    lambda_hat_client = metricas["lambda_hat_client"]
-
-    plt.figure(figsize=(7, 4))
-    plt.hist(interarrivals_client, bins=20, density=True, alpha=0.6, label="Interarrivals cliente")
-    x_vals = np.linspace(0, interarrivals_client.max(), 200)
-    pdf_exp_client = lambda_hat_client * np.exp(-lambda_hat_client * x_vals)
-    plt.plot(x_vals, pdf_exp_client, label="Exp(λ̂_cliente) teórica")
-    plt.xlabel("Tiempo entre llegadas (s)")
+    plt.xlabel("Tiempo de servicio")
     plt.ylabel("Densidad")
-    plt.title("Interarrivals del cliente vs exponencial")
     plt.legend()
-    filename2 = "hist_interarrivals_cliente.png"
-    plt.savefig(os.path.join(PLOTS_DIR, filename2), bbox_inches="tight")
+    fname1 = "hist_tiempo_servicio.png"
+    plt.savefig(os.path.join(PLOTS_DIR, fname1), bbox_inches="tight")
     plt.close()
-    plot_files.append(filename2)
+    plot_files.append((fname1, "Tiempos de servicio vs exponencial"))
 
-    # ====== 3) Serie temporal de tiempo en sistema (server) ======
-    plt.figure(figsize=(8, 4))
-    plt.plot(df_server.index, df_server["tiempo_en_sistema"], marker="o", linestyle="-")
-    plt.xlabel("Cliente (orden)")
-    plt.ylabel("Tiempo en sistema (s)")
+    # 2) Hist interarrivals cliente
+    inter_client = df_client["interarrival"].values
+    lambda_hat_client = metricas["lambda_hat_client"]
+    x_vals2 = np.linspace(0, max(inter_client.max(), 1.0), 200)
+    pdf_exp_client = lambda_hat_client * np.exp(-lambda_hat_client * x_vals2)
+
+    plt.figure()
+    plt.hist(inter_client, bins=20, density=True, alpha=0.7, label="Interarrivals cliente")
+    plt.plot(x_vals2, pdf_exp_client, "r-", label="Exp(λ̂_cliente)")
+    plt.title("Interarrivals del cliente vs exponencial")
+    plt.xlabel("Tiempo entre llegadas")
+    plt.ylabel("Densidad")
+    plt.legend()
+    fname2 = "hist_interarrivals_cliente.png"
+    plt.savefig(os.path.join(PLOTS_DIR, fname2), bbox_inches="tight")
+    plt.close()
+    plot_files.append((fname2, "Interarrivals del cliente vs exponencial"))
+
+    # 3) Serie tiempo en sistema
+    plt.figure()
+    plt.plot(range(len(df_server)), df_server["tiempo_en_sistema"], marker="o", linestyle="-")
     plt.title("Tiempo en el sistema por cliente (server)")
-    plt.grid(True, alpha=0.3)
-    filename3 = "serie_tiempo_sistema_server.png"
-    plt.savefig(os.path.join(PLOTS_DIR, filename3), bbox_inches="tight")
+    plt.xlabel("Cliente (orden)")
+    plt.ylabel("Tiempo en sistema")
+    fname3 = "serie_tiempo_sistema_server.png"
+    plt.savefig(os.path.join(PLOTS_DIR, fname3), bbox_inches="tight")
     plt.close()
-    plot_files.append(filename3)
+    plot_files.append((fname3, "Tiempo en el sistema por cliente (server)"))
 
-    # ====== 4) Boxplot de tiempos (servidor) ======
-    datos_box = [
+    # 4) Boxplot tiempos
+    plt.figure()
+    data_box = [
         df_server["tiempo_espera_cola"],
         df_server["tiempo_en_sistema"],
         df_server["tiempo_servicio"],
     ]
-    labels_box = ["Espera en cola", "Tiempo en sistema", "Servicio"]
-
-    plt.figure(figsize=(7, 4))
-    plt.boxplot(datos_box, labels=labels_box, showmeans=True)
-    plt.ylabel("Tiempo (s)")
+    plt.boxplot(data_box, labels=["Espera en cola", "Tiempo en sistema", "Servicio"])
     plt.title("Distribución de tiempos (server)")
-    plt.grid(axis="y", alpha=0.3)
-    filename4 = "boxplot_tiempos_server.png"
-    plt.savefig(os.path.join(PLOTS_DIR, filename4), bbox_inches="tight")
+    plt.ylabel("Tiempo")
+    fname4 = "boxplot_tiempos_server.png"
+    plt.savefig(os.path.join(PLOTS_DIR, fname4), bbox_inches="tight")
     plt.close()
-    plot_files.append(filename4)
+    plot_files.append((fname4, "Distribución de tiempos (server)"))
+
+    # 5) Hist interarrivals Wireshark (si existe)
+    if wireshark_stats is not None:
+        iw = wireshark_stats["interarrivals_w"]
+        lambda_w = wireshark_stats["lambda_wireshark"]
+        xw = np.linspace(0, max(iw.max(), 1.0), 200)
+        pdf_w = lambda_w * np.exp(-lambda_w * xw)
+
+        plt.figure()
+        plt.hist(iw, bins=20, density=True, alpha=0.7, label="Interarrivals Wireshark")
+        plt.plot(xw, pdf_w, "r-", label="Exp(λ̂_Wireshark)")
+        plt.title("Interarrivals observados por Wireshark")
+        plt.xlabel("Δt entre requests")
+        plt.ylabel("Densidad")
+        plt.legend()
+        fname5 = "hist_interarrivals_wireshark.png"
+        plt.savefig(os.path.join(PLOTS_DIR, fname5), bbox_inches="tight")
+        plt.close()
+        plot_files.append((fname5, "Interarrivals observados por Wireshark"))
 
     return plot_files
 
 
-# ---------------------- RUTAS ---------------------- #
-
+# --------------------------
+# Rutas principales
+# --------------------------
 @app.route("/")
 def index():
-    """
-    Página principal: menú de proyectos.
-    """
     return """
     <h1>Dashboard de Proyectos</h1>
     <ul>
         <li><a href="/mm1">Proyecto 1: Sistema M/M/1</a></li>
-        <!-- Aquí luego añades Proyecto 2 y 3 -->
     </ul>
     """
 
 
 @app.route("/mm1")
 def mm1_dashboard():
-    """
-    Dashboard del proyecto M/M/1:
-    - Si hay CSV => muestra métricas y gráficas
-    - Si no hay CSV => muestra aviso
-    """
-    df_server, df_client, data_available = cargar_datos()
+    df_server, df_client, data_available = cargar_datos_server_client()
 
     metricas = None
-    plots = []
+    sim_results = None
+    wireshark_stats = None
+    plot_files = []
+
+    lambda_teo = request.args.get("lambda_teo", type=float)
+    mu_teo = request.args.get("mu_teo", type=float)
+    n_sim = request.args.get("n_sim", type=int, default=1000)
 
     if data_available:
-        metricas = calcular_metricas(df_server, df_client)
-        plots = generar_graficas(df_server, df_client, metricas)
+        metricas = calcular_metricas_basicas(df_server, df_client)
+
+        if lambda_teo is None:
+            lambda_teo = metricas["lambda_hat_server"]
+        if mu_teo is None:
+            mu_teo = metricas["mu_hat"]
+
+        sim_results = simular_mm1(lambda_teo, mu_teo, n_clientes=n_sim)
+        wireshark_stats = analizar_wireshark()
+        plot_files = generar_plots(df_server, df_client, metricas, wireshark_stats)
+
+    experiments = load_experiments()
+    experiments = experiments[-10:]
 
     return render_template(
         "mm1.html",
         data_available=data_available,
         metricas=metricas,
-        plots=plots
+        sim_results=sim_results,
+        wireshark_stats=wireshark_stats,
+        lambda_teo=lambda_teo,
+        mu_teo=mu_teo,
+        n_sim=n_sim,
+        experiments=experiments,
+        plot_files=plot_files,
     )
 
 
-# -------- API para botones (AJAX) -------- #
-
+# --------------------------
+# API: iniciar server/cliente
+# --------------------------
 @app.route("/api/start_server", methods=["POST"])
 def api_start_server():
     global server_process
     if server_process is None or server_process.poll() is not None:
         try:
-            # Copiamos el entorno actual y eliminamos las variables de Werkzeug
             env = os.environ.copy()
             env.pop("WERKZEUG_SERVER_FD", None)
             env.pop("WERKZEUG_RUN_MAIN", None)
 
             server_process = subprocess.Popen(
-                [sys.executable, "server.py"],  # usa el mismo Python del venv
+                [sys.executable, "server.py"],
                 cwd=BASE_DIR,
                 env=env,
             )
@@ -279,10 +420,38 @@ def api_start_client():
         return jsonify(success=True, message="Cliente ya está corriendo.")
 
 
-@app.route("/api/run_sim", methods=["POST"])
-def api_run_sim():
-    ok, msg = correr_simulacion_mm1()
-    return jsonify(success=ok, message=msg)
+# --------------------------
+# API: guardar experimento
+# --------------------------
+@app.route("/api/save_experiment", methods=["POST"])
+def api_save_experiment():
+    data = request.get_json(force=True)
+
+    experiments = load_experiments()
+    data["timestamp"] = datetime.now().isoformat(timespec="seconds")
+    experiments.append(data)
+    save_experiments(experiments)
+
+    return jsonify(success=True, message="Experimento guardado.")
+
+
+# --------------------------
+# Exportar historial como CSV
+# --------------------------
+@app.route("/experiments/export")
+def export_experiments():
+    experiments = load_experiments()
+    if not experiments:
+        return Response("No hay experimentos.", mimetype="text/plain")
+
+    df = pd.DataFrame(experiments)
+    csv_data = df.to_csv(index=False)
+
+    return Response(
+        csv_data,
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment;filename=experiments.csv"},
+    )
 
 
 if __name__ == "__main__":

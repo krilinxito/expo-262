@@ -1,0 +1,506 @@
+\documentclass[12pt]{article}
+
+% ----------------------------------------------------
+% Paquetes
+% ----------------------------------------------------
+\usepackage[spanish]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{setspace}
+\usepackage{csquotes}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{caption}
+
+\geometry{letterpaper, margin=2.5cm}
+\setstretch{1.3}
+
+\graphicspath{{figuras/}} % carpeta donde pondras las imagenes
+
+% Estilo para código
+\lstset{
+	language=Python,
+	basicstyle=\ttfamily\small,
+	keywordstyle=\color{blue!70!black},
+	stringstyle=\color{green!40!black},
+	commentstyle=\color{gray},
+	numbers=left,
+	numberstyle=\tiny,
+	stepnumber=1,
+	breaklines=true,
+	frame=single,
+	backgroundcolor=\color{gray!5},
+	tabsize=4,
+	inputencoding=utf8
+}
+
+% ----------------------------------------------------
+% Documento
+% ----------------------------------------------------
+\begin{document}
+	
+	% ----------------------------------------------------
+	% Portada con logo
+	% ----------------------------------------------------
+	\begin{titlepage}
+		\centering
+		{\Large \textbf{Universidad Mayor de San Andrés}}\\
+		{\large Facultad de Ciencias Puras y Naturales}\\
+		{\large Carrera de Informática}\\[1cm]
+		
+		\includegraphics[width=4cm]{logo_umsa.png}\\[12pt]
+		
+		{\Large \textbf{Proyecto Final}}\\
+		{\Large \textbf{Redes de computadoras: Modelado de tráfico y solicitudes}}\\[1cm]
+		
+		\textbf{Curso:} Procesos Estocásticos y Series de Tiempo\\[6pt]
+		\textbf{Docente:} Ph.D. Willy Ernesto Portugal Durán\\[1cm]
+		
+		\textbf{Integrantes:}\\[4pt]
+		\begin{tabular}{l}
+			- Ian Ezequiel Salinas Condori \\
+			- Maximiliano Gómez Mallo \\
+			- Cayllagua Mamani Franklin \\
+			- Flores Tapia Ruddy
+		\end{tabular}
+		
+		\vfill
+		{\large \today}
+		
+	\end{titlepage}
+	
+	% ----------------------------------------------------
+	% Introducción
+	% ----------------------------------------------------
+	\section{Introducción}
+	
+	El tráfico generado en redes de computadoras presenta un comportamiento inherentemente aleatorio debido a la variabilidad de usuarios, los mecanismos del protocolo TCP/IP, las fluctuaciones de carga y la naturaleza asincrónica del procesamiento de solicitudes. Comprender este comportamiento es fundamental para analizar el rendimiento de redes, detectar condiciones de congestión, optimizar servidores y estimar tiempos de respuesta.
+	
+	El presente proyecto desarrolla un sistema experimental completo que integra tres enfoques complementarios:
+	
+	\begin{itemize}
+		\item \textbf{Captura real de tráfico} mediante Wireshark.
+		\item \textbf{Modelado matemático} utilizando procesos de Poisson y teoría de colas M/M/1.
+		\item \textbf{Simulación computacional} mediante Python, SimPy y un dashboard web.
+	\end{itemize}
+	
+	Esta integración permite analizar datos reales, compararlos con el modelo teórico y validarlos frente a la simulación.
+	
+	% ----------------------------------------------------
+	% Planteamiento del problema
+	% ----------------------------------------------------
+	\section{Planteamiento del problema}
+	
+	En un sistema cliente--servidor, las solicitudes pueden llegar a una tasa variable y, en muchos casos, impredecible. Si la capacidad de procesamiento del servidor (\(\mu\)) es inferior o similar a la tasa de llegada (\(\lambda\)), puede producirse congestión, aumentando los tiempos de espera y disminuyendo el rendimiento percibido por los usuarios.
+	
+	El problema central del proyecto consiste en:
+	
+	\begin{displayquote}
+		\textbf{Modelar y analizar el tráfico de solicitudes en una red utilizando procesos estocásticos, comparando el comportamiento real con los resultados teóricos y simulados.}
+	\end{displayquote}
+	
+	% ----------------------------------------------------
+	% Objetivos
+	% ----------------------------------------------------
+	\section{Objetivo general y específicos}
+	
+	\subsection*{Objetivo general}
+	
+	Estudiar el flujo de paquetes y conexiones en redes usando modelos de colas M/M/1 y procesos de Poisson, contrastando tráfico real, modelado teórico y simulación.
+	
+	\subsection*{Objetivos específicos}
+	
+	\begin{itemize}
+		\item Capturar y analizar tráfico real mediante Wireshark.
+		\item Extraer los tiempos entre llegadas y estimar el parámetro \(\lambda\).
+		\item Modelar el sistema como una cola M/M/1 y obtener métricas teóricas (\(W\), \(W_q\), \(L\), \(L_q\)).
+		\item Simular un sistema equivalente usando Python y SimPy.
+		\item Comparar empíricamente los resultados reales, teóricos y simulados.
+		\item Implementar un dashboard de análisis que integre métricas, gráficas y control del sistema (inicio de servidor, cliente y simulación).
+	\end{itemize}
+	
+	% ----------------------------------------------------
+	% Justificación
+	% ----------------------------------------------------
+	\section{Justificación}
+	
+	El estudio es relevante debido a que sistemas distribuidos, servidores web, routers, colas de paquetes y aplicaciones concurrentes presentan patrones de tráfico estocástico. Modelar dicho tráfico permite:
+	
+	\begin{itemize}
+		\item Predecir condiciones de saturación y colapso del servicio.
+		\item Evaluar el rendimiento del servidor bajo diferentes cargas.
+		\item Comparar procesos reales con modelos matemáticos y simulados.
+		\item Validar el uso de la teoría de colas en contextos modernos de redes de computadoras.
+	\end{itemize}
+	
+	El proyecto combina teoría, práctica y simulación, logrando un análisis completo del sistema y fortaleciendo competencias en modelado, análisis de datos y desarrollo de software.
+	
+	% ----------------------------------------------------
+	% Marco teórico
+	% ----------------------------------------------------
+	\section{Marco teórico}
+	
+	\subsection{Procesos de Poisson}
+	
+	El proceso de Poisson modela la llegada aleatoria de eventos en el tiempo y es ampliamente utilizado en redes de computadoras. Un proceso de Poisson con tasa \(\lambda\) cumple:
+	
+	\[
+	P(N(t)=k) = \frac{(\lambda t)^k e^{-\lambda t}}{k!}, \quad k = 0,1,2,\dots
+	\]
+	
+	Los tiempos entre llegadas siguen una distribución exponencial:
+	
+	\[
+	f(t)=\lambda e^{-\lambda t}, \quad t \ge 0.
+	\]
+	
+	\subsection{Modelo de colas M/M/1}
+	
+	El modelo M/M/1 describe un servidor único con llegadas Poisson y tiempos de servicio exponenciales. Las métricas fundamentales incluyen:
+	
+	\[
+	\rho=\frac{\lambda}{\mu}, \qquad
+	W=\frac{1}{\mu-\lambda}, \qquad
+	W_q=\frac{\lambda}{\mu(\mu-\lambda)},
+	\]
+	\[
+	L=\lambda W, \qquad
+	L_q=\lambda W_q.
+	\]
+	
+	Estas ecuaciones permiten comparar la teoría con los datos empíricos y verificar la validez del modelo bajo diferentes condiciones de carga.
+	
+	% ----------------------------------------------------
+	% Diseño metodológico
+	% ----------------------------------------------------
+	\section{Diseño metodológico}
+	
+	\subsection{Tipo de estudio}
+	
+	El proyecto se clasifica como analítico--experimental: captura datos reales, aplica teoría matemática y valida mediante simulación estocástica.
+	
+	\subsection{Etapas metodológicas}
+	
+	\subsubsection*{1. Captura de tráfico mediante Wireshark}
+	
+	Se capturaron paquetes generados por el cliente Python hacia el servidor Flask, registrando \textit{timestamps} y extrayendo los tiempos entre llegadas. A partir de estos datos se estimó la tasa de llegada observada por Wireshark, \(\hat{\lambda}_{\text{Wireshark}}\).
+	
+	\subsubsection*{2. Modelado teórico}
+	
+	Se aplicaron las fórmulas de teoría de colas M/M/1 para comparar el rendimiento esperado teórico con el observado. Se utilizaron parámetros \(\lambda\) y \(\mu\) ajustables desde la interfaz web del dashboard.
+	
+	\subsubsection*{3. Simulación con SimPy}
+	
+	Se desarrolló una simulación del sistema equivalente utilizando SimPy. La simulación genera llegadas con distribución exponencial (\(\lambda\)) y tiempos de servicio exponenciales (\(\mu\)), reproduciendo el comportamiento de un servidor M/M/1.
+	
+	\subsubsection*{4. Integración en un dashboard web}
+	
+	Se construyó una interfaz web con Flask donde es posible:
+	
+	\begin{itemize}
+		\item Iniciar el servidor y el cliente Poisson.
+		\item Ajustar parámetros teóricos y de simulación (\(\lambda\), \(\mu\), \(n\)).
+		\item Visualizar métricas empíricas, teóricas y simuladas.
+		\item Observar las gráficas generadas en forma de carrusel.
+		\item Guardar y exportar el historial de experimentos.
+	\end{itemize}
+	
+	% ----------------------------------------------------
+	% Análisis estadístico del tráfico
+	% ----------------------------------------------------
+	\section{Análisis estadístico del tráfico}
+	
+	En esta sección se analizan de forma descriptiva y gráfica las series de tiempos obtenidas en el experimento: interarrivals del cliente, interarrivals observados por Wireshark y tiempos de servicio del servidor.
+	
+	\subsection{Interarrivals observados por Wireshark}
+	
+	En la Figura~\ref{fig:wireshark} se muestra el histograma de los tiempos entre solicitudes medidos a partir de los paquetes capturados con Wireshark, junto con la densidad de una distribución exponencial ajustada usando la tasa \(\hat{\lambda}_{\text{Wireshark}}\).
+	
+	\begin{figure}[h!]
+		\centering
+		\includegraphics[width=0.7\textwidth]{hist_interarrivals_wireshark}
+		\caption{Interarrivals observados por Wireshark y curva exponencial ajustada.}
+		\label{fig:wireshark}
+	\end{figure}
+	
+	Visualmente, los datos presentan una mayor concentración de interarrivals cortos y una cola que decrece, lo cual es coherente con el supuesto de una distribución exponencial. Aunque el tamaño de muestra es limitado, la forma general respalda el uso del proceso de Poisson como modelo de llegadas.
+	
+	\subsection{Interarrivals del cliente Poisson}
+	
+	La Figura~\ref{fig:cliente_inter} muestra el histograma de los tiempos entre llegadas generados por el cliente Python, que utiliza la función \texttt{random.expovariate} para simular llegadas Poisson.
+	
+	\begin{figure}[h!]
+		\centering
+		\includegraphics[width=0.7\textwidth]{hist_interarrivals_cliente}
+		\caption{Interarrivals del cliente y densidad exponencial teórica.}
+		\label{fig:cliente_inter}
+	\end{figure}
+	
+	En este caso se observa un ajuste aún más cercano a la distribución exponencial, lo cual es esperable porque los datos provienen directamente del generador pseudoaleatorio con parámetro \(\lambda\) fijado en el experimento.
+	
+	\subsection{Tiempos de servicio del servidor}
+	
+	En la Figura~\ref{fig:servicio} se presenta el histograma de los tiempos de servicio medidos en el servidor Flask, junto con la densidad exponencial ajustada mediante la tasa \(\hat{\mu}\).
+	
+	\begin{figure}[h!]
+		\centering
+		\includegraphics[width=0.7\textwidth]{hist_tiempo_servicio}
+		\caption{Tiempos de servicio en el servidor vs distribución exponencial.}
+		\label{fig:servicio}
+	\end{figure}
+	
+	Los tiempos empíricos exhiben una concentración en valores pequeños y una cola que decae de forma aproximadamente exponencial. Se identifican algunas observaciones más largas asociadas a variaciones en el sistema operativo, latencias de red o procesos internos del servidor, pero el ajuste global sigue siendo razonable.
+	
+	\subsection{Serie de tiempos en el sistema}
+	
+	La Figura~\ref{fig:serie} muestra la serie de tiempos en el sistema por cliente (desde la llegada hasta la salida del servidor).
+	
+	\begin{figure}[h!]
+		\centering
+		\includegraphics[width=0.7\textwidth]{serie_tiempo_sistema_server}
+		\caption{Tiempo total en el sistema por cliente en el servidor.}
+		\label{fig:serie}
+	\end{figure}
+	
+	Se observa una variabilidad considerable entre clientes, lo cual refleja la naturaleza estocástica del modelo. No se detectan tendencias crecientes pronunciadas, lo que indica que, para los parámetros utilizados (\(\lambda \approx 0.0023\), \(\mu \approx 1.0456\) y \(\rho \approx 0.0022\)), el sistema opera en una zona de muy baja ocupación.
+	
+	\subsection{Distribución de tiempos}
+	
+	La Figura~\ref{fig:boxplot} presenta un resumen mediante diagramas de cajas de los tiempos de espera en cola, tiempos totales en el sistema y tiempos de servicio del servidor.
+	
+	\begin{figure}[h!]
+		\centering
+		\includegraphics[width=0.7\textwidth]{boxplot_tiempos_server}
+		\caption{Distribución de tiempos de espera, servicio y permanencia en el sistema.}
+		\label{fig:boxplot}
+	\end{figure}
+	
+	Los tiempos de espera en cola son prácticamente nulos (mediana cero y valores muy pequeños), lo que concuerda con el bajo nivel de utilización del servidor. La mayor variabilidad se concentra en los tiempos de servicio y, en consecuencia, en el tiempo total en el sistema.
+	
+	% ----------------------------------------------------
+	% Comparación teoría vs datos vs simulación
+	% ----------------------------------------------------
+	\section{Comparación teoría, datos y simulación}
+	
+	En la interfaz del dashboard se estimaron las siguientes tasas:
+	
+	\begin{itemize}
+		\item \(\hat{\lambda}_{\text{server}} = 0.0023\) solicitudes por segundo.
+		\item \(\hat{\lambda}_{\text{cliente}} = 0.6376\) solicitudes por segundo.
+		\item \(\hat{\mu} = 1.0456\) solicitudes atendidas por segundo.
+		\item \(\hat{\rho} = 0.0022\), lo que indica un servidor muy desocupado.
+	\end{itemize}
+	
+	La Tabla~\ref{tab:metricas} resume las métricas de desempeño obtenidas en la corrida mostrada en la interfaz (empírico del servidor, teórico M/M/1 y simulación).
+	
+	\begin{table}[h!]
+		\centering
+		\caption{Comparación de métricas empíricas, teóricas y simuladas.}
+		\label{tab:metricas}
+		\begin{tabular}{lccc}
+			\toprule
+			\textbf{Métrica} & \textbf{Empírico} & \textbf{Teórico} & \textbf{Simulación} \\
+			\midrule
+			\(W_q\) (espera en cola) & 0.0    & 0.0021 & 0.0024 \\
+			\(W\) (tiempo en sistema) & 0.9571 & 0.9584 & 0.9836 \\
+			\(L_q\) (n\textsuperscript{o} en cola) & 0.0 & 0.0 & 0.0 \\
+			\(L\) (n\textsuperscript{o} en sistema) & 0.0022 & 0.0022 & 0.0022 \\
+			\bottomrule
+		\end{tabular}
+	\end{table}
+	
+	Gráficamente, la Figura~\ref{fig:barras} resume la comparación entre \(W_q\) y \(W\) para las tres fuentes (empírico, teórico y simulación).
+	
+	\begin{figure}[h!]
+		\centering
+		\includegraphics[width=0.75\textwidth]{barras_Wq_W}
+		\caption{Comparación de \(W_q\) y \(W\): empírico vs teórico vs simulación.}
+		\label{fig:barras}
+	\end{figure}
+	
+	Se observa que:
+	
+	\begin{itemize}
+		\item El valor teórico de \(W\) (\(\approx 0.9584\)) es muy cercano a la media empírica medida en el servidor (\(\approx 0.9571\)), lo que respalda la validez del modelo M/M/1 para este escenario.
+		\item Los resultados de la simulación presentan ligeras diferencias (por ejemplo \(W \approx 0.9836\)), atribuibles a la variabilidad inherente a la simulación Monte Carlo y al número finito de clientes.
+		\item Los valores de \(W_q\) son cercanos a cero en la práctica, coherentes con un servidor poco cargado (\(\rho \ll 1\)), donde casi nunca se forma cola.
+	\end{itemize}
+	
+	En conjunto, la evidencia empírica y la simulación concuerdan razonablemente con la teoría de colas, especialmente en términos de orden de magnitud y comportamiento cualitativo del sistema.
+	
+	% ----------------------------------------------------
+	% Código fuente del proyecto
+	% ----------------------------------------------------
+	\section{Fragmentos de código del sistema desarrollado}
+	
+	A continuación se presentan secciones relevantes del código implementado.
+	
+	% -----------------------------------------
+	% Servidor
+	% -----------------------------------------
+	\subsection{Servidor Flask (server.py)}
+	
+	\begin{lstlisting}
+		from flask import Flask, jsonify
+		import time, csv, os, random
+		
+		app = Flask(__name__)
+		LOG = "file/server_data.csv"
+		
+		mu = 1.0  # tasa de servicio (ejemplo)
+		
+		@app.route("/request")
+		def atender():
+		start = time.time()
+		servicio = random.expovariate(mu)  # tiempo de servicio ~ Exp(mu)
+		time.sleep(servicio)
+		end = time.time()
+		
+		# guardar en CSV: t0, t1, tiempo_servicio
+		with open(LOG, "a", newline="") as f:
+		w = csv.writer(f)
+		w.writerow([start, end, servicio])
+		
+		return jsonify({"ok": True})
+		
+		@app.route("/clear")
+		def clear():
+		open(LOG, "w").close()
+		return jsonify({"message": "CSV limpiado"})
+		
+		if __name__ == "__main__":
+		app.run(port=5000)
+	\end{lstlisting}
+	
+	% -----------------------------------------
+	% Cliente
+	% -----------------------------------------
+	\subsection{Cliente Poisson (client.py)}
+	
+	\begin{lstlisting}
+		import requests, time, random, csv
+		
+		LOG = "file/client_data.csv"
+		
+		def cliente(lambda_rate, n):
+		for i in range(n):
+		# generar intervalo ~ Exp(lambda)
+		interarrival = random.expovariate(lambda_rate)
+		time.sleep(interarrival)
+		
+		start = time.time()
+		r = requests.get("http://127.0.0.1:5000/request")
+		end = time.time()
+		
+		# guardar en CSV: t0, t1, interarrival
+		with open(LOG, "a", newline="") as f:
+		w = csv.writer(f)
+		w.writerow([start, end, interarrival])
+		
+		if __name__ == "__main__":
+		cliente(lambda_rate=0.2, n=100)
+	\end{lstlisting}
+	
+	% -----------------------------------------
+	% Simulación
+	% -----------------------------------------
+	\subsection{Simulación M/M/1 con SimPy (sim.py)}
+	
+	\begin{lstlisting}
+		import simpy, random
+		
+		def cliente(env, servidor, mu, resultados):
+		llegada = env.now
+		with servidor.request() as req:
+		yield req
+		servicio = random.expovariate(mu)
+		yield env.timeout(servicio)
+		resultados.append(env.now - llegada)
+		
+		def simular(lambda_rate, mu, n):
+		env = simpy.Environment()
+		servidor = simpy.Resource(env, capacity=1)
+		resultados = []
+		
+		def generador():
+		for _ in range(n):
+		yield env.timeout(random.expovariate(lambda_rate))
+		env.process(cliente(env, servidor, mu, resultados))
+		
+		env.process(generador())
+		env.run()
+		return resultados
+	\end{lstlisting}
+	
+	% -----------------------------------------
+	% Procesamiento de métricas
+	% -----------------------------------------
+	\subsection{Calculo de métricas (procesamiento de CSV)}
+	
+	\begin{lstlisting}
+		import pandas as pd
+		
+		df_s = pd.read_csv("file/server_data.csv",
+		names=["t0", "t1", "serv"])
+		df_c = pd.read_csv("file/client_data.csv",
+		names=["t0", "t1", "inter"])
+		
+		lambda_emp = 1 / df_c["inter"].mean()
+		mu_emp = 1 / df_s["serv"].mean()
+		rho = lambda_emp / mu_emp
+		
+		# Metricas empiricas
+		W_emp = (df_s["t1"] - df_s["t0"]).mean()
+		Wq_emp = max(W_emp - df_s["serv"].mean(), 0)
+		
+		# Metricas teoricas (usando lambda_ y mu definidos)
+		W_teo = 1 / (mu - lambda_)
+		Wq_teo = lambda_ / (mu * (mu - lambda_))
+	\end{lstlisting}
+	
+	% ----------------------------------------------------
+	% Resultados esperados y conclusiones
+	% ----------------------------------------------------
+	\section{Conclusiones y trabajo futuro}
+	
+	A partir del experimento realizado se concluye que:
+	
+	\begin{itemize}
+		\item Los tiempos entre llegadas observados tanto en Wireshark como en el cliente Python se ajustan razonablemente a distribuciones exponenciales, lo cual respalda el uso de procesos de Poisson para modelar el tráfico.
+		\item Las métricas empíricas del servidor (en particular el tiempo promedio en el sistema \(W\)) coinciden de manera cercana con los valores teóricos del modelo M/M/1.
+		\item La simulación con SimPy reproduce adecuadamente el comportamiento observado, confirmando la utilidad de la simulación estocástica como herramienta de validación.
+		\item Para los parámetros utilizados, la utilización del servidor \(\rho\) es muy baja, por lo que el sistema presenta tiempos de espera en cola prácticamente nulos.
+	\end{itemize}
+	
+	Como trabajo futuro se propone:
+	
+	\begin{itemize}
+		\item Analizar escenarios con mayor carga (\(\lambda\) cercano a \(\mu\)), donde la cola se vuelva más relevante.
+		\item Extender el modelo a colas M/M/c o M/G/1 para representar servidores con varios núcleos o tiempos de servicio más generales.
+		\item Incorporar pruebas estadísticas formales (por ejemplo Kolmogorov--Smirnov) para evaluar el ajuste a la distribución exponencial.
+		\item Automatizar la lectura de capturas de Wireshark (archivos \texttt{.pcap}) directamente desde Python.
+	\end{itemize}
+	
+	% ----------------------------------------------------
+	% Bibliografía
+	% ----------------------------------------------------
+	\clearpage   % <-- fuerza página nueva
+	\section{Bibliografía}
+
+	
+	\begin{enumerate}
+		\item Casella, G., \& Berger, R. L. (2002). \textit{Statistical inference} (2.\,ed.). Duxbury.
+		\item Kleinrock, L. (1975). \textit{Queueing systems, volume I: Theory}. Wiley.
+		\item Ross, S. M. (2014). \textit{Introduction to probability models} (11.\,ed.). Academic Press.
+		\item Tanenbaum, A. S., \& Wetherall, D. J. (2011). \textit{Redes de computadoras} (5.\,ed.). Pearson.
+		\item Trivedi, K. S. (2002). \textit{Probability and statistics with reliability, queuing, and computer science applications} (2.\,ed.). Wiley.
+		\item Wireshark Foundation. (s.\,f.). \textit{Wireshark User's Guide}. Recuperado de \url{https://www.wireshark.org/docs/}
+		\item Team SimPy. (s.\,f.). \textit{SimPy documentation}. Recuperado de \url{https://simpy.readthedocs.io/}
+	\end{enumerate}
+	
+\end{document}

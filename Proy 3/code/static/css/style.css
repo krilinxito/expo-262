@@ -1,230 +1,327 @@
+/* ----------------------------------------------------
+   Variables de color y estilo base
+-----------------------------------------------------*/
 :root {
-    --primary: #2563eb;
-    --primary-dark: #1d4ed8;
-    --bg: #0f172a;
-    --card-bg: #020617;
-    --card-alt: #111827;
+    --bg-main: #020617;          /* fondo general */
+    --bg-card: #020617;          /* fondo de tarjetas */
+    --bg-card-elevated: #020617;
+    --border-card: rgba(30,64,175,0.55);
+
+    --accent: #2563eb;
+    --accent-soft: rgba(37,99,235,0.18);
+    --accent-strong: #1d4ed8;
+
     --text-main: #e5e7eb;
     --text-muted: #9ca3af;
-    --accent: #22c55e;
-    --danger: #ef4444;
+    --text-strong: #f9fafb;
+
+    --danger: #f97373;
+    --ok: #4ade80;
+
+    --border-soft: rgba(148,163,184,0.35);
+    --shadow-soft: 0 18px 45px rgba(15,23,42,0.85);
+
+    --radius-lg: 18px;
+    --radius-sm: 10px;
+    --transition-fast: 0.15s ease;
 }
 
-* {
+/* ----------------------------------------------------
+   Reset sencillo
+-----------------------------------------------------*/
+*,
+*::before,
+*::after {
     box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    height: 100%;
 }
 
 body {
-    margin: 0;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    background: radial-gradient(circle at top, #1e293b, #020617 60%);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont,
+                 "SF Pro Text", "Segoe UI", sans-serif;
+    background: radial-gradient(circle at top, #0f172a 0, #020617 42%, #000 100%);
     color: var(--text-main);
+    -webkit-font-smoothing: antialiased;
 }
 
+/* ----------------------------------------------------
+   Layout principal
+-----------------------------------------------------*/
 .layout {
     max-width: 1200px;
-    margin: 0 auto;
-    padding: 24px 16px 40px;
+    margin: 18px auto 32px;
+    padding: 0 16px;
 }
 
+/* ----------------------------------------------------
+   Header
+-----------------------------------------------------*/
 header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 24px;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
 }
 
 .title {
-    font-size: 1.7rem;
+    font-size: 1.5rem;
     font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--text-strong);
 }
 
 .subtitle {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     color: var(--text-muted);
 }
 
 .badge {
-    font-size: 0.75rem;
-    padding: 3px 8px;
+    padding: 6px 14px;
     border-radius: 999px;
-    background: rgba(37, 99, 235, 0.2);
-    border: 1px solid rgba(37, 99, 235, 0.7);
-    color: #bfdbfe;
+    border: 1px solid rgba(96,165,250,0.5);
+    background: radial-gradient(circle at top left,
+                rgba(37,99,235,0.35),
+                rgba(15,23,42,0.95));
+    font-size: 0.78rem;
+    color: #dbeafe;
+    white-space: nowrap;
 }
 
-/* Panels layout */
+/* ----------------------------------------------------
+   Grid principal
+-----------------------------------------------------*/
 .grid {
     display: grid;
-    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-    gap: 20px;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.3fr);
+    gap: 16px;
 }
 
-/* Card */
+@media (max-width: 900px) {
+    .grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ----------------------------------------------------
+   Tarjetas
+-----------------------------------------------------*/
 .card {
-    background: linear-gradient(135deg, rgba(15,23,42,0.98), rgba(15,23,42,0.85));
-    border-radius: 16px;
+    background: radial-gradient(circle at top left,
+                rgba(15,23,42,0.9),
+                rgba(2,6,23,0.97));
+    border-radius: 20px;
+    box-shadow: var(--shadow-soft);
+    border: 1px solid var(--border-card);
     padding: 16px 18px 18px;
-    box-shadow: 0 12px 30px rgba(0,0,0,0.45);
-    border: 1px solid rgba(148, 163, 184, 0.13);
+    position: relative;
 }
 
 .card h2 {
-    font-size: 1.1rem;
-    margin: 0 0 10px;
+    font-size: 1rem;
+    margin-bottom: 4px;
+    color: #f9fafb;
 }
 
-.card h3 {
-    font-size: 0.95rem;
-    margin: 8px 0;
-    color: var(--text-muted);
-}
-
-/* Buttons */
+/* ----------------------------------------------------
+   Controles / botones
+-----------------------------------------------------*/
 .controls {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 10px;
+    gap: 8px;
+    margin: 8px 0 10px;
 }
 
 .btn {
-    border: none;
-    border-radius: 999px;
-    padding: 8px 14px;
-    font-size: 0.9rem;
-    cursor: pointer;
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    justify-content: center;
+    gap: 4px;
+    padding: 7px 14px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    font-size: 0.85rem;
     font-weight: 500;
+    cursor: pointer;
+    transition:
+      background var(--transition-fast),
+      box-shadow var(--transition-fast),
+      transform var(--transition-fast),
+      border-color var(--transition-fast);
+    user-select: none;
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-    color: white;
-    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
+    background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+    color: #e5e7eb;
+    box-shadow: 0 10px 25px rgba(37,99,235,0.6);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #1d4ed8, #1e40af);
+    transform: translateY(-1px);
+    box-shadow: 0 14px 32px rgba(37,99,235,0.75);
 }
 
 .btn-secondary {
-    background: rgba(148, 163, 184, 0.12);
+    background: rgba(15,23,42,0.9);
     color: var(--text-main);
+    border-color: rgba(148,163,184,0.5);
 }
 
-.btn-icon {
-    font-size: 1rem;
+.btn-secondary:hover {
+    background: rgba(30,64,175,0.15);
+    border-color: rgba(96,165,250,0.7);
 }
 
-/* Status message */
+/* ----------------------------------------------------
+   Estado / mensajes
+-----------------------------------------------------*/
 .status {
-    margin-top: 10px;
-    font-size: 0.85rem;
-    min-height: 1.4em;
+    margin-top: 6px;
+    font-size: 0.8rem;
     color: var(--text-muted);
 }
 
 .status.ok {
-    color: var(--accent);
+    color: var(--ok);
 }
 
 .status.error {
     color: var(--danger);
 }
 
-/* Metrics table */
+.alert {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(30,64,175,0.16);
+    border: 1px dashed rgba(96,165,250,0.6);
+    font-size: 0.8rem;
+    color: #e5e7eb;
+}
+
+/* ----------------------------------------------------
+   Tabla de métricas
+-----------------------------------------------------*/
 .metrics-table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 8px;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
 }
 
 .metrics-table th,
 .metrics-table td {
-    padding: 6px 6px;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+    padding: 6px 8px;
+    border-bottom: 1px solid rgba(30,41,59,0.9);
+    text-align: left;
 }
 
 .metrics-table th {
+    font-weight: 600;
     color: var(--text-muted);
-    font-weight: 500;
+    background: rgba(15,23,42,0.8);
 }
 
-/* Pills */
+.metrics-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* ----------------------------------------------------
+   Badges de métricas
+-----------------------------------------------------*/
 .metrics-badges {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 8px;
+    gap: 6px;
+    margin-top: 10px;
+    margin-bottom: 6px;
 }
 
 .metric-pill {
-    padding: 6px 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 9px;
     border-radius: 999px;
-    background: rgba(15,23,42,0.9);
-    border: 1px solid rgba(148,163,184,0.35);
-    font-size: 0.78rem;
+    background: radial-gradient(circle at top left,
+                rgba(15,23,42,0.9),
+                rgba(15,23,42,0.98));
+    border: 1px solid rgba(37,99,235,0.45);
+    font-size: 0.75rem;
+    color: #dbeafe;
 }
 
 .metric-pill span {
     color: var(--text-muted);
 }
 
-/* Alerts */
-.alert {
-    padding: 10px 12px;
-    border-radius: 10px;
-    margin-top: 8px;
-    background: rgba(15,23,42,0.9);
-    border: 1px solid rgba(248, 250, 252, 0.1);
-    color: var(--text-muted);
+/* ----------------------------------------------------
+   Código inline
+-----------------------------------------------------*/
+code {
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+    font-size: 0.75rem;
+    background: rgba(15,23,42,0.95);
+    padding: 2px 4px;
+    border-radius: 4px;
+    border: 1px solid rgba(30,64,175,0.5);
 }
 
-.alert strong {
-    color: #fecaca;
-}
-
-/* ---- CARRUSEL ---- */
-
+/* ----------------------------------------------------
+   Carrusel de gráficas
+-----------------------------------------------------*/
 .carousel-wrapper {
-    margin-top: 10px;
+    margin-top: 8px;
 }
 
 .carousel {
     position: relative;
-    width: 100%;
-    border-radius: 14px;
+    background: rgba(15,23,42,0.95);
+    border-radius: 16px;
+    padding: 10px;
+    border: 1px solid rgba(30,64,175,0.55);
     overflow: hidden;
-    background: var(--card-alt);
-    border: 1px solid rgba(51,65,85,0.7);
-    box-shadow: 0 10px 25px rgba(0,0,0,0.45);
-    min-height: 260px;
 }
 
-.carousel img {
+.carousel-image {
     width: 100%;
+    border-radius: 10px;
     display: block;
 }
 
 .carousel-caption {
-    padding: 6px 10px;
-    font-size: 0.8rem;
-    text-align: center;
-    background: rgba(15,23,42,0.85);
+    margin-top: 6px;
+    font-size: 0.85rem;
     color: var(--text-muted);
+    text-align: center;
 }
 
 .carousel-btn {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    background: rgba(15,23,42,0.7);
-    color: white;
-    border-radius: 999px;
-    width: 32px;
-    height: 32px;
     border: none;
+    background: rgba(15,23,42,0.85);
+    color: #e5e7eb;
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
     cursor: pointer;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background var(--transition-fast),
+                transform var(--transition-fast),
+                box-shadow var(--transition-fast);
 }
 
 .carousel-btn.prev {
@@ -236,7 +333,9 @@ header {
 }
 
 .carousel-btn:hover {
-    background: rgba(15,23,42,1);
+    background: rgba(37,99,235,0.95);
+    box-shadow: 0 8px 20px rgba(37,99,235,0.7);
+    transform: translateY(-50%) scale(1.05);
 }
 
 .carousel-dots {
@@ -249,17 +348,40 @@ header {
 .carousel-dot {
     width: 8px;
     height: 8px;
+    border-radius: 999px;
+    border: none;
     background: rgba(148,163,184,0.5);
-    border-radius: 50%;
     cursor: pointer;
+    transition: background var(--transition-fast), transform var(--transition-fast);
 }
 
 .carousel-dot.active {
-    background: var(--primary);
+    background: rgba(59,130,246,1);
+    transform: scale(1.15);
 }
 
-@media (max-width: 900px) {
-    .grid {
-        grid-template-columns: 1fr;
+/* ----------------------------------------------------
+   Utilidades pequeñas
+-----------------------------------------------------*/
+.plot-title {
+    margin-bottom: 4px;
+    font-size: 0.88rem;
+    color: var(--text-muted);
+}
+
+.plot-image {
+    width: 100%;
+    border-radius: 10px;
+    display: block;
+}
+
+/* Espaciados en móviles */
+@media (max-width: 640px) {
+    .card {
+        padding: 14px;
+    }
+    .controls {
+        flex-direction: column;
+        align-items: stretch;
     }
 }

@@ -14,7 +14,7 @@
 **Integrantes:**  
 - Flores Tapia Ruddy – carnet
 - Cayllagua Mamani Franklin – carnet
-- Salinas Condori Ian Ezequiel – carnet
+- Salinas Condori Ian Ezequiel – 13694034
 - Maximiliano Gómez Mallo – 14480221  
 <br>
 

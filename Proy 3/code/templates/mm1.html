@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>Proyecto 1 - Sistema M/M/1</title>
-    <!-- CSS externo -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
@@ -11,35 +10,30 @@
     <header>
         <div>
             <div class="title">Proyecto 1: Sistema M/M/1</div>
-            <div class="subtitle">Servidor Flask, cliente Poisson y análisis de colas en una sola vista.</div>
+            <div class="subtitle">
+                Servidor Flask, cliente Poisson, simulación y análisis de tráfico real (Wireshark).
+            </div>
         </div>
         <div class="badge">Procesos Estocásticos</div>
     </header>
 
     <div class="grid">
-        <!-- Columna izquierda: controles + métricas -->
+        <!-- Columna izquierda -->
         <div class="card">
             <h2>Control del experimento</h2>
             <p class="subtitle" style="margin-top: 2px;">
-                Usa estos botones para iniciar el servidor, el cliente y (opcionalmente) la simulación.
+                Inicia servidor y cliente, ajusta parámetros (λ, μ, n) y analiza resultados.
             </p>
 
             <div class="controls">
                 <button class="btn btn-primary" id="btn-server">
-                    <span class="btn-icon">🖥️</span>
-                    Iniciar servidor
+                    🖥️ Iniciar servidor
                 </button>
                 <button class="btn btn-primary" id="btn-client">
-                    <span class="btn-icon">📡</span>
-                    Iniciar cliente
-                </button>
-                <button class="btn btn-secondary" id="btn-sim">
-                    <span class="btn-icon">📊</span>
-                    Correr simulación
+                    📡 Iniciar cliente
                 </button>
                 <button class="btn btn-secondary" onclick="window.location.reload()">
-                    <span class="btn-icon">🔄</span>
-                    Actualizar métricas
+                    🔄 Actualizar métricas
                 </button>
             </div>
 
@@ -53,6 +47,38 @@
             {% endif %}
 
             {% if data_available and metricas %}
+            <h3>Parámetros teóricos / simulación</h3>
+            <form method="get" action="{{ url_for('mm1_dashboard') }}" style="margin-top:8px;">
+                <table class="metrics-table">
+                    <tr>
+                        <th>Parámetro</th><th>Valor</th>
+                    </tr>
+                    <tr>
+                        <td>λ (para teoría/simulación)</td>
+                        <td>
+                            <input type="number" step="0.0001" name="lambda_teo"
+                                   value="{{ lambda_teo|round(4) }}" style="width:100%;">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>μ (para teoría/simulación)</td>
+                        <td>
+                            <input type="number" step="0.0001" name="mu_teo"
+                                   value="{{ mu_teo|round(4) }}" style="width:100%;">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>n clientes (simulación)</td>
+                        <td>
+                            <input type="number" name="n_sim" value="{{ n_sim }}" style="width:100%;">
+                        </td>
+                    </tr>
+                </table>
+                <div style="margin-top:8px;">
+                    <button class="btn btn-secondary" type="submit">Aplicar parámetros</button>
+                </div>
+            </form>
+
             <h3>Métricas principales</h3>
 
             <div class="metrics-badges">
@@ -68,49 +94,110 @@
                 <div class="metric-pill">
                     <span>ρ̂:</span> {{ metricas.rho_hat|round(4) }}
                 </div>
+                {% if wireshark_stats %}
+                <div class="metric-pill">
+                    <span>λ̂ (Wireshark):</span> {{ wireshark_stats.lambda_wireshark|round(4) }}
+                </div>
+                {% endif %}
             </div>
 
             <table class="metrics-table">
-                <tr><th>Métrica</th><th>Empírico</th><th>Teórico M/M/1</th></tr>
+                <tr><th>Métrica</th><th>Empírico</th><th>Teórico</th><th>Simulación</th></tr>
                 <tr>
                     <td>Wq (espera en cola)</td>
-                    <td>{{ metricas.Wq_emp|round(4) }} s</td>
-                    <td>{{ metricas.Wq_teo|round(4) }} s</td>
+                    <td>{{ metricas.Wq_emp|round(4) }}</td>
+                    <td>{{ metricas.Wq_teo|round(4) }}</td>
+                    <td>{{ sim_results.Wq_sim|round(4) }}</td>
                 </tr>
                 <tr>
                     <td>W (tiempo en sistema)</td>
-                    <td>{{ metricas.W_emp|round(4) }} s</td>
-                    <td>{{ metricas.W_teo|round(4) }} s</td>
-                </tr>
-                <tr>
-                    <td>W (cliente)</td>
-                    <td>{{ metricas.W_client_emp|round(4) }} s</td>
-                    <td>—</td>
+                    <td>{{ metricas.W_emp|round(4) }}</td>
+                    <td>{{ metricas.W_teo|round(4) }}</td>
+                    <td>{{ sim_results.W_sim|round(4) }}</td>
                 </tr>
                 <tr>
                     <td>Lq (n° en cola)</td>
                     <td>{{ metricas.Lq_emp|round(4) }}</td>
                     <td>{{ metricas.Lq_teo|round(4) }}</td>
+                    <td>{{ sim_results.Lq_sim|round(4) }}</td>
                 </tr>
                 <tr>
                     <td>L (n° en sistema)</td>
                     <td>{{ metricas.L_emp|round(4) }}</td>
                     <td>{{ metricas.L_teo|round(4) }}</td>
+                    <td>{{ sim_results.L_sim|round(4) }}</td>
                 </tr>
             </table>
+
+            <div style="margin-top:10px;">
+                <button class="btn btn-primary" id="btn-save-exp">💾 Guardar experimento</button>
+                <a class="btn btn-secondary" href="{{ url_for('export_experiments') }}" target="_blank">
+                    ⬇️ Exportar historial
+                </a>
+            </div>
+
+            <div id="current-metrics"
+                 data-lambda-server="{{ metricas.lambda_hat_server }}"
+                 data-lambda-client="{{ metricas.lambda_hat_client }}"
+                 data-mu-hat="{{ metricas.mu_hat }}"
+                 data-rho-hat="{{ metricas.rho_hat }}"
+                 data-wq-emp="{{ metricas.Wq_emp }}"
+                 data-w-emp="{{ metricas.W_emp }}"
+                 data-lq-emp="{{ metricas.Lq_emp }}"
+                 data-l-emp="{{ metricas.L_emp }}"
+                 data-wq-teo="{{ metricas.Wq_teo }}"
+                 data-w-teo="{{ metricas.W_teo }}"
+                 data-lq-teo="{{ metricas.Lq_teo }}"
+                 data-l-teo="{{ metricas.L_teo }}"
+                 data-wq-sim="{{ sim_results.Wq_sim }}"
+                 data-w-sim="{{ sim_results.W_sim }}"
+                 data-lq-sim="{{ sim_results.Lq_sim }}"
+                 data-l-sim="{{ sim_results.L_sim }}"
+                 data-lambda-teo="{{ lambda_teo }}"
+                 data-mu-teo="{{ mu_teo }}"
+                 data-n-sim="{{ n_sim }}"
+                 {% if wireshark_stats %}
+                 data-lambda-w="{{ wireshark_stats.lambda_wireshark }}"
+                 {% endif %}>
+            </div>
+
+            {% if experiments %}
+            <h3 style="margin-top:16px;">Historial (últimos {{ experiments|length }})</h3>
+            <table class="metrics-table">
+                <tr>
+                    <th>Fecha</th>
+                    <th>λ_teo</th>
+                    <th>μ_teo</th>
+                    <th>Wq_emp</th>
+                    <th>Wq_teo</th>
+                    <th>Wq_sim</th>
+                </tr>
+                {% for e in experiments %}
+                <tr>
+                    <td>{{ e.timestamp }}</td>
+                    <td>{{ "%.4f"|format(e.lambda_teo) }}</td>
+                    <td>{{ "%.4f"|format(e.mu_teo) }}</td>
+                    <td>{{ "%.4f"|format(e.Wq_emp) }}</td>
+                    <td>{{ "%.4f"|format(e.Wq_teo) }}</td>
+                    <td>{{ "%.4f"|format(e.Wq_sim) }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+            {% endif %}
             {% endif %}
         </div>
 
-        <!-- Columna derecha: carrusel de gráficas -->
+        <!-- Columna derecha: carrusel de gráficas PNG -->
         <div class="card">
             <h2>Gráficas del sistema</h2>
 
-            {% if data_available and plots %}
+            {% if data_available and plot_files %}
             <div class="carousel-wrapper">
-                <div class="carousel" id="carousel">
+                <div class="carousel" id="mm1-carousel">
                     <button class="carousel-btn prev" id="carousel-prev" type="button">‹</button>
                     <button class="carousel-btn next" id="carousel-next" type="button">›</button>
-                    <img id="carousel-image" src="" alt="Gráfica">
+                    <img id="carousel-image" class="carousel-image"
+                         src="" alt="Gráfica del sistema">
                     <div class="carousel-caption" id="carousel-caption"></div>
                 </div>
                 <div class="carousel-dots" id="carousel-dots"></div>
@@ -124,92 +211,19 @@
     </div>
 </div>
 
+{# Pasamos la lista de imágenes al JS #}
+{% if data_available and plot_files %}
 <script>
-    async function callApi(endpoint, label) {
-        const statusEl = document.getElementById("status");
-        statusEl.textContent = `Ejecutando ${label}...`;
-        statusEl.className = "status";
-
-        try {
-            const resp = await fetch(endpoint, { method: "POST" });
-            const data = await resp.json();
-
-            statusEl.textContent = data.message || `Respuesta de ${label}`;
-            statusEl.className = "status " + (data.success ? "ok" : "error");
-        } catch (err) {
-            statusEl.textContent = `Error al llamar ${label}: ` + err;
-            statusEl.className = "status error";
-        }
-    }
-
-    document.getElementById("btn-server").addEventListener("click", () => {
-        callApi("/api/start_server", "servidor");
-    });
-
-    document.getElementById("btn-client").addEventListener("click", () => {
-        callApi("/api/start_client", "cliente");
-    });
-
-    document.getElementById("btn-sim").addEventListener("click", () => {
-        callApi("/api/run_sim", "simulación");
-    });
-
-    // -------- Carrusel --------
-    {% if data_available and plots %}
-    const carouselItems = [
-        {% for pf in plots %}
-        {
-            src: "{{ url_for('static', filename='plots/' + pf) }}",
-            title: "{{ pf }}"
-        }{% if not loop.last %},{% endif %}
-        {% endfor %}
-    ];
-
-    let currentIndex = 0;
-
-    const imgEl = document.getElementById("carousel-image");
-    const captionEl = document.getElementById("carousel-caption");
-    const dotsContainer = document.getElementById("carousel-dots");
-    const prevBtn = document.getElementById("carousel-prev");
-    const nextBtn = document.getElementById("carousel-next");
-
-    function renderDots() {
-        dotsContainer.innerHTML = "";
-        carouselItems.forEach((_, idx) => {
-            const dot = document.createElement("button");
-            dot.className = "carousel-dot" + (idx === currentIndex ? " active" : "");
-            dot.type = "button";
-            dot.addEventListener("click", () => {
-                currentIndex = idx;
-                updateCarousel();
-            });
-            dotsContainer.appendChild(dot);
-        });
-    }
-
-    function updateCarousel() {
-        if (!carouselItems.length) return;
-        const item = carouselItems[currentIndex];
-        imgEl.src = item.src;
-        captionEl.textContent = item.title;
-        renderDots();
-    }
-
-    prevBtn.addEventListener("click", () => {
-        if (!carouselItems.length) return;
-        currentIndex = (currentIndex - 1 + carouselItems.length) % carouselItems.length;
-        updateCarousel();
-    });
-
-    nextBtn.addEventListener("click", () => {
-        if (!carouselItems.length) return;
-        currentIndex = (currentIndex + 1) % carouselItems.length;
-        updateCarousel();
-    });
-
-    // Inicializar carrusel
-    updateCarousel();
-    {% endif %}
+    window.MM1_HAS_PLOTS = true;
+    window.MM1_PLOTS_BASE = "{{ url_for('static', filename='plots/') }}";
+    window.MM1_PLOTS = {{ plot_files|tojson|safe }};
 </script>
+{% else %}
+<script>
+    window.MM1_HAS_PLOTS = false;
+</script>
+{% endif %}
+
+<script src="{{ url_for('static', filename='js/mm1.js') }}"></script>
 </body>
 </html>
